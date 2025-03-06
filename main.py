@@ -1,7 +1,9 @@
 import hashlib
+import json
 
 class User:
     users = []  # Store all registered users
+    FILE_PATH = "users.json"
     
     def __init__(self, username, password, role):
         self.username = username
@@ -10,6 +12,28 @@ class User:
     
     def hash_password(self, password):
         return hashlib.sha256(password.encode()).hexdigest()
+    
+    @classmethod
+    def save_users(cls):
+        with open(cls.FILE_PATH, "w") as file:
+            json.dump([user.__dict__ for user in cls.users], file)
+    
+    @classmethod
+    def load_users(cls):
+        try:
+            with open(cls.FILE_PATH, "r") as file:
+                data = json.load(file)
+                for user in data:
+                    if user["role"] == "Freelancer":
+                        new_user = Freelancer(user["username"], user["password"], user["name"], user["skills"], user["experience"], user["hourly_rate"], user["payment_method"])
+                    elif user["role"] == "Employer":
+                        new_user = Employer(user["username"], user["password"], user["company_name"])
+                    else:
+                        continue
+                    new_user.password = user["password"]  # Keep hashed password
+                    cls.users.append(new_user)
+        except (FileNotFoundError, json.JSONDecodeError):
+            cls.users = []
     
     @classmethod
     def sign_up(cls, username, password, role):
@@ -32,6 +56,7 @@ class User:
             return None
         
         cls.users.append(new_user)
+        cls.save_users()
         print("Sign-up successful! You can now log in.")
         return new_user
     
@@ -58,24 +83,43 @@ class Freelancer(User):
         self.hourly_rate = hourly_rate
         self.payment_method = payment_method
     
+    def browse_jobs(self):
+        pass
+    
+    def apply_job(self, job):
+        pass
+    
+    def track_applications(self):
+        pass
+    
+    def edit_profile(self):
+        pass
+
     def view_profile(self):
         print(f"Name: {self.name}\nSkills: {', '.join(self.skills)}\nExperience: {self.experience}\nHourly Rate: ${self.hourly_rate}\nPayment Method: {self.payment_method}")
-
-    def edit_profile(self):
-        self.name = input("Enter new name: ")
-        self.skills = input("Enter new skills (comma separated): ").split(',')
-        self.experience = input("Enter new experience: ")
-        self.hourly_rate = float(input("Enter new hourly rate: "))
-        self.payment_method = input("Enter new payment method: ")
-        print("Profile updated successfully!")
 
 class Employer(User):
     def __init__(self, username, password, company_name):
         super().__init__(username, password, "Employer")
         self.company_name = company_name
     
+    def post_job(self, title, description, budget, skills_required, duration):
+        pass
+    
+    def view_applicants(self, job):
+        pass
+    
+    def accept_proposal(self, freelancer):
+        pass
+    
+    def reject_proposal(self, freelancer):
+        pass
+    
     def view_profile(self):
         print(f"Company Name: {self.company_name}")
+
+# Load users from file when the program starts
+User.load_users()
 
 # Testing the User Management System
 def main():
@@ -96,14 +140,12 @@ def main():
             
             if user:
                 while True:
-                    print("\n1. View Profile\n2. Edit Profile (Freelancer only)\n3. Logout")
+                    print("\n1. View Profile\n2. Logout")
                     sub_choice = input("Select an option: ")
                     
                     if sub_choice == "1":
                         user.view_profile()
-                    elif sub_choice == "2" and isinstance(user, Freelancer):
-                        user.edit_profile()
-                    elif sub_choice == "3":
+                    elif sub_choice == "2":
                         user.logout()
                         break
                     else:
