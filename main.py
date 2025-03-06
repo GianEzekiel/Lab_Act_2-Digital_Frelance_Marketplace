@@ -1,6 +1,7 @@
 import hashlib
 import json
 import os
+import time
 
 class User:
     users = []  # Store all registered users
@@ -43,7 +44,8 @@ class User:
             print("Username already taken!")
             return None
         
-        if role == "Freelancer":
+        if role == "1":
+            role = "Freelancer"
             print("=================================")
             print("  Create Your Freelancer Profile ")
             print("=================================")
@@ -53,34 +55,42 @@ class User:
             hourly_rate = float(input("Enter your hourly rate: "))
             payment_method = input("Enter your payment method: ")
             new_user = Freelancer(username, password, name, skills, experience, hourly_rate, payment_method)
-        elif role == "Employer":
+        elif role == "2":
+            role = "Employer"
             print("=================================")
             print("   Create Your Employer Account  ")
             print("=================================")
             company_name = input("Enter your company name: ")
             new_user = Employer(username, password, company_name)
         else:
-            print("Invalid role!")
+            print("Invalid choice!")
             return None
         
         cls.users.append(new_user)
         cls.save_users()
-        print("Sign-up successful! You can now log in.")
+        print("\nSign-up successful! You can now log in.")
+        time.sleep(2)
+        os.system("cls")
         return new_user
     
     @classmethod
     def login(cls, username, password):
-        os.system("cls")
         hashed_pw = hashlib.sha256(password.encode()).hexdigest()
         for user in cls.users:
             if user.username == username and user.password == hashed_pw:
-                print(f"Login successful! Welcome, {username}.")
+                print(f"\nLogin successful! Welcome, {username}.")
+                time.sleep(2)
+                os.system("cls")
                 return user
-        print("Invalid username or password!")
+        print("\nInvalid username or password!")
+        time.sleep(2)
+        os.system("cls")
         return None
     
     def logout(self):
-        print(f"{self.username} has logged out.")
+        print(f"\n{self.username} has logged out.")
+        time.sleep(2)
+        os.system("cls")
         return None
 
 class Freelancer(User):
@@ -101,28 +111,15 @@ class Freelancer(User):
     def track_applications(self):
         pass
     
-    def view_profile(self):
-        while True:
-            os.system("cls")
-            print("=================================")
-            print("        Freelancer Profile        ")
-            print("=================================")
-            print(f"Name: {self.name}\nSkills: {', '.join(self.skills)}\nExperience: {self.experience}\nHourly Rate: ${self.hourly_rate}\nPayment Method: {self.payment_method}")
-            print("\n[1] Back")
-            choice = input("Select an option: ")
-            if choice == "1":
-                os.system("cls")
-                break
-    
     def edit_profile(self):
         while True:
             os.system("cls")
-            print("=================================")
-            print("        Edit Profile        ")
-            print("=================================")
-            print("\nWhich field would you like to edit?")
-            print("[1] Name\n[2] Skills\n[3] Experience\n[4] Hourly Rate\n[5] Payment Method\n[6] Back")
-            choice = input("Enter the number of the field to edit: ")
+            print("=========================================")
+            print("               Edit Profile              ")
+            print("=========================================")
+            print(f"[1] Name: {self.name}\n[2] Skills: {', '.join(self.skills)}\n[3] Experience: {self.experience}\n[4] Hourly Rate: ${self.hourly_rate}\n[5] Payment Method: {self.payment_method}")
+            print("-----------------------------------------")
+            choice = input("Select field to edit [1-5] or [6] Back: ")
             
             if choice == "1":
                 self.name = input("Enter new name: ")
@@ -179,7 +176,14 @@ def main():
             print("=================================")
             username = input("Enter username: ")
             password = input("Enter password: ")
-            role = input("Enter role (Freelancer/Employer): ")
+
+            os.system("cls")
+            print("=========================================")
+            print("             Select Your Role            ")
+            print("=========================================")
+            print("[1] Freelancer - Find and apply for jobs\n[2] Employer - Post jobs and hire talent ")
+            print("-----------------------------------------")
+            role = input("Enter role: ")
             User.sign_up(username, password, role)
         
         elif choice == "2":
@@ -198,7 +202,7 @@ def main():
                         print("=================================")
                         print("          Freelancer Menu        ")
                         print("=================================")
-                        print("[1] Browse Jobs\n[2] Apply Jobs\n[3] Track Applications\n[4] View Profile\n[5] Edit Profile\n[6] Logout")
+                        print("[1] Browse Jobs\n[2] Apply Jobs\n[3] Track Applications\n[4] Edit Profile\n[5] Logout")
                     elif isinstance(user, Employer):
                         print("=================================")
                         print("           Employer Menu         ")
@@ -208,13 +212,16 @@ def main():
                     print("---------------------------------")
                     sub_choice = input("Select an option: ")
                     
-                    if sub_choice == "4" and isinstance(user, Freelancer):
-                        user.view_profile()
-                    elif sub_choice == "5" and isinstance(user, Freelancer):
-                        user.edit_profile()
-                    elif sub_choice == "6" or (sub_choice == "5" and isinstance(user, Employer)):
-                        user.logout()
-                        break
+                    if isinstance(user, Freelancer):
+                        if sub_choice == "4":
+                            user.edit_profile()
+                        elif sub_choice == "5":
+                            user.logout()
+                            break
+                    elif isinstance(user, Employer):
+                        if sub_choice == "5":
+                            user.logout()
+                            break
         elif choice == "3":
             print("Exiting... Goodbye!")
             break
