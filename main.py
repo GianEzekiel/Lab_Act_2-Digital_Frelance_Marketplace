@@ -163,7 +163,7 @@ User.load_users()
 def main():
     while True:
         print("=================================")
-        print("         Welcome to MyApps        ")
+        print("         Welcome to MyApp        ")
         print("=================================")
         print("[1] Sign Up\n[2] Login\n[3] Exit")
         print("---------------------------------")
