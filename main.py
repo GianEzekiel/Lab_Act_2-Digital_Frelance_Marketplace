@@ -160,6 +160,67 @@ class Employer(User):
 
 User.load_users()
 
+def display_sign_up():
+    os.system("cls")
+    print("=================================")
+    print("             Sign Up             ")
+    print("=================================")
+    username = input("Enter username: ")
+    password = input("Enter password: ")
+
+    os.system("cls")
+    print("=========================================")
+    print("             Select Your Role            ")
+    print("=========================================")
+    print("[1] Freelancer - Find and apply for jobs\n[2] Employer - Post jobs and hire talent ")
+    print("-----------------------------------------")
+    role = input("Enter role: ")
+    User.sign_up(username, password, role)
+
+def display_login():
+    os.system("cls")
+    print("=================================")
+    print("              Login              ")
+    print("=================================")
+    username = input("Enter username: ")
+    password = input("Enter password: ")
+    return User.login(username, password)
+
+def display_menu(user):
+    while True:
+        os.system("cls")
+        print("=================================")
+        print(f"         {user.role} Menu        ")
+        print("=================================")
+        
+        if isinstance(user, Freelancer):
+            options = [
+                "[1] Browse Jobs", 
+                "[2] Apply Jobs", 
+                "[3] Track Applications", 
+                "[4] Edit Profile", 
+                "[5] Logout"
+            ]
+        elif isinstance(user, Employer):
+            options = [
+                "[1] Post Job", 
+                "[2] View Applicants", 
+                "[3] Accept Proposal", 
+                "[4] Reject Proposal", 
+                "[5] Logout"
+            ]
+        
+        print("\n".join(options))
+        print("---------------------------------")
+        
+        sub_choice = input("Select an option: ")
+        
+        if isinstance(user, Freelancer) and sub_choice == "4":
+            user.edit_profile()
+        if sub_choice == "5":
+            user.logout()
+            break
+
 def main():
     while True:
         print("=================================")
@@ -170,58 +231,11 @@ def main():
         choice = input("Select an option: ")
         
         if choice == "1":
-            os.system("cls")
-            print("=================================")
-            print("             Sign Up             ")
-            print("=================================")
-            username = input("Enter username: ")
-            password = input("Enter password: ")
-
-            os.system("cls")
-            print("=========================================")
-            print("             Select Your Role            ")
-            print("=========================================")
-            print("[1] Freelancer - Find and apply for jobs\n[2] Employer - Post jobs and hire talent ")
-            print("-----------------------------------------")
-            role = input("Enter role: ")
-            User.sign_up(username, password, role)
-        
+            display_sign_up()
         elif choice == "2":
-            os.system("cls")
-            print("=================================")
-            print("              Login              ")
-            print("=================================")
-            username = input("Enter username: ")
-            password = input("Enter password: ")
-            user = User.login(username, password)
-            
+            user = display_login()
             if user:
-                while True:
-                    os.system("cls")
-                    if isinstance(user, Freelancer):
-                        print("=================================")
-                        print("          Freelancer Menu        ")
-                        print("=================================")
-                        print("[1] Browse Jobs\n[2] Apply Jobs\n[3] Track Applications\n[4] Edit Profile\n[5] Logout")
-                    elif isinstance(user, Employer):
-                        print("=================================")
-                        print("           Employer Menu         ")
-                        print("=================================")
-                        print("[1] Post Job\n[2] View Applicants\n[3] Accept Proposal\n[4] Reject Proposal\n[5] Logout")
-                    
-                    print("---------------------------------")
-                    sub_choice = input("Select an option: ")
-                    
-                    if isinstance(user, Freelancer):
-                        if sub_choice == "4":
-                            user.edit_profile()
-                        elif sub_choice == "5":
-                            user.logout()
-                            break
-                    elif isinstance(user, Employer):
-                        if sub_choice == "5":
-                            user.logout()
-                            break
+                display_menu(user)
         elif choice == "3":
             print("Exiting... Goodbye!")
             break
