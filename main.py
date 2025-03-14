@@ -3,6 +3,15 @@ import json
 import os
 import time
 
+# Global Utility Functions
+def display_header(title):
+    print("=" * 35)
+    print(f"{title.center(35)}")
+    print("=" * 35)
+
+def divider():
+    print("-" * 35)
+
 class User:
     users = []  # Store all registered users
     FILE_PATH = "users.json"
@@ -46,9 +55,7 @@ class User:
         
         if role == "1":
             role = "Freelancer"
-            print("=================================")
-            print("  Create Your Freelancer Profile ")
-            print("=================================")
+            display_header("Create Your Freelancer Profile")
             name = input("Enter your name: ")
             skills = input("Enter your skills (comma separated): ").split(',')
             experience = input("Enter your experience: ")
@@ -57,9 +64,7 @@ class User:
             new_user = Freelancer(username, password, name, skills, experience, hourly_rate, payment_method)
         elif role == "2":
             role = "Employer"
-            print("=================================")
-            print("   Create Your Employer Account  ")
-            print("=================================")
+            display_header("Create Your Employer Account")
             company_name = input("Enter your company name: ")
             new_user = Employer(username, password, company_name)
         else:
@@ -114,11 +119,9 @@ class Freelancer(User):
     def edit_profile(self):
         while True:
             os.system("cls")
-            print("=========================================")
-            print("               Edit Profile              ")
-            print("=========================================")
+            display_header("Edit Profile")
             print(f"[1] Name: {self.name}\n[2] Skills: {', '.join(self.skills)}\n[3] Experience: {self.experience}\n[4] Hourly Rate: ${self.hourly_rate}\n[5] Payment Method: {self.payment_method}")
-            print("-----------------------------------------")
+            divider()
             choice = input("Select field to edit [1-5] or [6] Back: ")
             
             if choice == "1":
@@ -162,26 +165,20 @@ User.load_users()
 
 def display_sign_up():
     os.system("cls")
-    print("=================================")
-    print("             Sign Up             ")
-    print("=================================")
+    display_header("Sign Up")
     username = input("Enter username: ")
     password = input("Enter password: ")
 
     os.system("cls")
-    print("=========================================")
-    print("             Select Your Role            ")
-    print("=========================================")
+    display_header("Select Your Role")
     print("[1] Freelancer - Find and apply for jobs\n[2] Employer - Post jobs and hire talent ")
-    print("-----------------------------------------")
+    divider()
     role = input("Enter role: ")
     User.sign_up(username, password, role)
 
 def display_login():
     os.system("cls")
-    print("=================================")
-    print("              Login              ")
-    print("=================================")
+    display_header("Login")
     username = input("Enter username: ")
     password = input("Enter password: ")
     return User.login(username, password)
@@ -189,9 +186,7 @@ def display_login():
 def display_menu(user):
     while True:
         os.system("cls")
-        print("=================================")
-        print(f"         {user.role} Menu        ")
-        print("=================================")
+        display_header(f"{user.role} Menu")
         
         if isinstance(user, Freelancer):
             options = [
@@ -211,7 +206,7 @@ def display_menu(user):
             ]
         
         print("\n".join(options))
-        print("---------------------------------")
+        divider()
         
         sub_choice = input("Select an option: ")
         
@@ -223,11 +218,9 @@ def display_menu(user):
 
 def main():
     while True:
-        print("=================================")
-        print("         Welcome to MyApp        ")
-        print("=================================")
+        display_header("Welcome to ProDigi")
         print("[1] Sign Up\n[2] Login\n[3] Exit")
-        print("---------------------------------")
+        divider()
         choice = input("Select an option: ")
         
         if choice == "1":
