@@ -47,7 +47,7 @@ class User:
             cls.users = []
     
     @classmethod
-    def sign_up(cls, username, password, role):
+    def signUp(cls, username, password, role):
         os.system("cls")
         if any(user.username == username for user in cls.users):
             print("Username already taken!")
@@ -107,16 +107,16 @@ class Freelancer(User):
         self.hourly_rate = hourly_rate
         self.payment_method = payment_method
     
-    def browse_jobs(self):
+    def browseJobs(self):
         pass
     
-    def apply_job(self):
+    def applyJob(self):
         pass
     
-    def track_applications(self):
+    def trackApplications(self):
         pass
     
-    def edit_profile(self):
+    def editProfile(self):
         while True:
             os.system("cls")
             display_header("Edit Profile")
@@ -149,21 +149,21 @@ class Employer(User):
         super().__init__(username, password, "Employer")
         self.company_name = company_name
     
-    def post_job(self):
+    def postJob(self):
         pass
     
-    def view_applicants(self):
+    def viewApplicants(self):
         pass
     
-    def accept_proposal(self):
+    def acceptProposal(self):
         pass
     
-    def reject_proposal(self):
+    def rejectProposal(self):
         pass
 
 User.load_users()
 
-def display_sign_up():
+def display_signUp():
     os.system("cls")
     display_header("Sign Up")
     username = input("Enter username: ")
@@ -174,7 +174,7 @@ def display_sign_up():
     print("[1] Freelancer - Find and apply for jobs\n[2] Employer - Post jobs and hire talent ")
     divider()
     role = input("Enter role: ")
-    User.sign_up(username, password, role)
+    User.signUp(username, password, role)
 
 def display_login():
     os.system("cls")
@@ -211,7 +211,7 @@ def display_menu(user):
         sub_choice = input("Select an option: ")
         
         if isinstance(user, Freelancer) and sub_choice == "4":
-            user.edit_profile()
+            user.editProfile()
         if sub_choice == "5":
             user.logout()
             break
@@ -224,7 +224,7 @@ def main():
         choice = input("Select an option: ")
         
         if choice == "1":
-            display_sign_up()
+            display_signUp()
         elif choice == "2":
             user = display_login()
             if user:
