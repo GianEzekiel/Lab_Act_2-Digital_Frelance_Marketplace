@@ -54,12 +54,14 @@ class User:
     def sign_up(cls, username, password, role):
         conn = sqlite3.connect("freelancer_marketplace.db")
         cursor = conn.cursor()
+
         cursor.execute("SELECT username FROM users WHERE username = ?", (username,))
         if cursor.fetchone():
             print("Username already taken!")
             conn.close()
             return None
 
+        hashed_password = hashlib.sha256(password.encode()).hexdigest()
 
         if role == "1":
             role = "Freelancer"
@@ -69,53 +71,67 @@ class User:
             experience = input("Enter your experience: ")
             hourly_rate = float(input("Enter your hourly rate: "))
             payment_method = input("Enter your payment method: ")
+
             cursor.execute("""
                 INSERT INTO users (username, password, role, name, skills, experience, hourly_rate, payment_method)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
-                (username, hashlib.sha256(password.encode()).hexdigest(), role, name, skills, experience, hourly_rate, payment_method))
+                (username, hashed_password, role, name, skills, experience, hourly_rate, payment_method))
+
         elif role == "2":
             role = "Employer"
             display_header("Create Your Employer Account")
             company_name = input("Enter your company name: ")
+
             cursor.execute("""
                 INSERT INTO users (username, password, role, company_name)
                 VALUES (?, ?, ?, ?)""",
-                (username, hashlib.sha256(password.encode()).hexdigest(), role, company_name))
+                (username, hashed_password, role, company_name))
+
         else:
             print("Invalid choice!")
             conn.close()
             return None
-       
+
+        # Get the last inserted ID
+        user_id = cursor.lastrowid  
+
         conn.commit()
         conn.close()
+
         print("\nSign-up successful! You can now log in.")
         time.sleep(2)
         os.system("cls")
-        return cls(username, password, role)
+
+        # Return the new User instance with all required arguments
+        return cls(user_id, username, hashed_password, role)  
+
    
     @classmethod
     def login(cls, username, password):
         conn = sqlite3.connect("freelancer_marketplace.db")
         cursor = conn.cursor()
-        cursor.execute("SELECT * FROM users WHERE username = ?", (username,))
+        cursor.execute("SELECT id, username, password, role FROM users WHERE username = ?", (username,))
         user_data = cursor.fetchone()
         conn.close()
-
 
         if user_data and user_data[2] == hashlib.sha256(password.encode()).hexdigest():
             print(f"\nLogin successful! Welcome, {username}.")
             time.sleep(2)
             os.system("cls")
-            if user_data[3] == "Freelancer":
-                return Freelancer(*user_data)  # Pass all user_data to Freelancer
-            else:
-                return Employer(*user_data)  # Pass all user_data to Employer
 
+            # Extract only the necessary values
+            user_id, username, password, role = user_data
+
+            if role == "Freelancer":
+                return Freelancer(user_id, username, password, role)  # Pass only the expected values
+            else:
+                return Employer(user_id, username, password, role)  # Pass only the expected values
 
         print("\nInvalid username or password!")
         time.sleep(2)
         os.system("cls")
         return None
+
        
     @staticmethod
     def display_all_users():
