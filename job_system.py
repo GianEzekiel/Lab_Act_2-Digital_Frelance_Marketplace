@@ -1,4 +1,5 @@
-from main import Freelancer  # Ensure Freelancer class exists in main.py
+import sqlite3
+from main import Freelancer, display_header, divider  # Ensure Freelancer class exists in main.py
 
 class Job:
     def __init__(self, title, description, budget, skillrequired, duration, applicants=None):
@@ -32,3 +33,24 @@ class Application:
             self.status = new_status
         else:
             raise ValueError("Invalid status update")
+        
+    @staticmethod
+    def display_all_applications():
+        conn = sqlite3.connect("freelancer_marketplace.db")
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT job_applications.id, jobs.title, users.username, job_applications.status
+            FROM job_applications
+            JOIN jobs ON job_applications.job_id = jobs.id
+            JOIN users ON job_applications.freelancer_id = users.id
+        """)
+        applications = cursor.fetchall()
+        conn.close()
+        
+        display_header("Job Applications")
+        for app in applications:
+            print(app)
+        divider()
+        
+    
+        

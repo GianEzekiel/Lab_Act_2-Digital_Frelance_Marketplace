@@ -137,68 +137,114 @@ class Freelancer(User):
 
         
     def browse_jobs(self):
-        """Fetch and display all jobs from the database."""
+        """Fetch and display all jobs, then allow freelancer to search or apply."""
+        while True:  # Keeps the user in the job browsing section until they choose to exit
+            conn = sqlite3.connect("freelancer_marketplace.db")
+            cursor = conn.cursor()
+
+            # Fetch all jobs from the database
+            cursor.execute("""
+                SELECT id, title, description, budget, skills_required, duration
+                FROM jobs
+            """)
+            jobs = cursor.fetchall()
+            conn.close()
+
+            if not jobs:
+                print("No jobs available at the moment.")
+                return  # Only return if no jobs are available
+
+            # Display all jobs
+            print("\nAvailable Jobs:\n" + "=" * 50)
+            for job in jobs:
+                job_id, title, description, budget, skills_required, duration = job
+                print(f"[{job_id}] {title}")
+                print(f"   Description: {description}")
+                print(f"   Budget: ${budget}")
+                print(f"   Skills Required: {skills_required}")
+                print(f"   Duration: {duration}")
+                print("=" * 50)
+
+            # Provide freelancer options
+            print("\nOptions:")
+            print("1. Search Job")
+            print("2. Apply Job")
+            print("3. Exit to Dashboard")
+
+            choice = input("Enter your choice (1/2/3): ").strip()
+
+            if choice == "1":
+                self.search_job()
+            elif choice == "2":
+                self.apply_job()
+            elif choice == "3":
+                print("Returning to freelancer dashboard...")
+                break  # Exits the loop and returns to the freelancer dashboard
+            else:
+                print("Invalid choice. Please enter 1, 2, or 3.")
+
+    # Function to search for a job by title
+    def search_job(self):
+        """Search for jobs based on the job title."""
+        
+        job_title = input("Enter the job title to search: ").strip()
+
         conn = sqlite3.connect("freelancer_marketplace.db")
         cursor = conn.cursor()
 
-        # Fetch all jobs from the database
         cursor.execute("""
-            SELECT id, title, description, budget, skills_required, duration, status
+            SELECT id, title, description, budget, skills_required, duration
             FROM jobs
-            WHERE status = 'open'
-        """)
+            WHERE title LIKE ?
+        """, ('%' + job_title + '%',))
+        
         jobs = cursor.fetchall()
         conn.close()
 
         if not jobs:
-            print("No jobs available at the moment.")
-            return
+            print("No jobs found matching your search.")
+        else:
+            os.system("cls")
+            print("\nSearch Results:\n" + "=" * 50)
+            for job in jobs:
+                job_id, title, description, budget, skills_required, duration = job
+                print(f"[{job_id}] {title}")
+                print(f"   Description: {description}")
+                print(f"   Budget: ${budget}")
+                print(f"   Skills Required: {skills_required}")
+                print(f"   Duration: {duration}")
+                print("=" * 50)
 
-        print("\nAvailable Jobs:\n" + "=" * 50)
-        for job in jobs:
-            job_id, title, description, budget, skills_required, duration, status = job
+        input("Press Enter to return to the Browse Jobs menu...")  # Prevents instant return
 
-            print(f"[{job_id}] {title}")
-            print(f"   Description: {description}")
-            print(f"   Budget: ${budget}")
-            print(f"   Skills Required: {skills_required}")
-            print(f"   Duration: {duration}")
-            print(f"   Status: {status.capitalize()}")
-            print("=" * 50)
+    # Function to apply for a job
+    def apply_job(self):
+        """Apply for a job based on the job title."""
+        job_title = input("Enter the job title you want to apply for: ").strip()
 
-        input("\nPress Enter to return to the dashboard...")  # Wait for user input before returning
+        conn = sqlite3.connect("freelancer_marketplace.db")
+        cursor = conn.cursor()
 
-    def apply_job(self, job):
-            """Apply for a job by inserting an application into the database."""
-            if not isinstance(job, job_system.Job):
-                raise TypeError("Job must be an instance of Job class")
+        # Find the job ID based on the title
+        cursor.execute("SELECT id FROM jobs WHERE title LIKE ?", ('%' + job_title + '%',))
+        job = cursor.fetchone()
 
-            conn = sqlite3.connect("freelancer_marketplace.db")
-            cursor = conn.cursor()
+        if not job:
+            print("Job not found. Please check the title and try again.")
+        else:
+            job_id = job[0]
 
-            # Check if the freelancer has already applied for this job
-            cursor.execute("""
-                SELECT * FROM job_applications WHERE job_id = ? AND freelancer_id = ?
-            """, (job.id, self.id))
-            existing_application = cursor.fetchone()
-
-            if existing_application:
-                print("You have already applied for this job.")
-                conn.close()
-                return
-
-            # Create an application entry in the database
+            # Insert application into the database
             cursor.execute("""
                 INSERT INTO job_applications (job_id, freelancer_id, status)
                 VALUES (?, ?, 'applied')
-            """, (job.id, self.id))
+            """, (job_id, self.id))
 
             conn.commit()
-            conn.close()
+            print(f"Your application for '{job_title}' has been submitted successfully!")
 
-            # Add the freelancer to the job's applicant list
-            job.add_applicant(self)
-            print(f"Successfully applied for the job: {job.title}")
+        conn.close()
+        input("Press Enter to return to the Browse Jobs menu...")  # Prevents instant return
         
     def track_applications(self):
         """Fetch and display job applications for the freelancer."""
@@ -227,6 +273,8 @@ class Freelancer(User):
             print(f"   Budget: ${budget}")
             print(f"   Status: {status}")
             print("="*50)
+        
+        input("Press Enter to return to the Browse Jobs menu...")
     
     
     def edit_profile(self):
@@ -282,36 +330,122 @@ class Employer(User):
 
         # Get the ID of the newly inserted job
         job_id = cursor.lastrowid
+        job.id = job_id  # Assign the ID to the job object
 
         conn.commit()
         conn.close()
 
-        print(f"Job '{title}' has been successfully posted with ID {job_id}.")
+        # Add job to employer's posted jobs list
+        self.posted_jobs.append(job)
 
+        print(f"Job '{title}' has been successfully posted with ID {job_id}.")
         return job  # Returning the job instance
 
+    def view_applicants(self, job_title):
+        """Displays applicants for a job posted by the employer."""
+
+        conn = sqlite3.connect("freelancer_marketplace.db")
+        cursor = conn.cursor()
+
+        # Check if the employer has posted this job
+        cursor.execute("SELECT id FROM jobs WHERE title = ? AND employer_id = ?", (job_title, self.id))
+        job_data = cursor.fetchone()
+
+        if not job_data:
+            print(f"You haven't posted a job titled '{job_title}'.")
+            conn.close()
+            return
+
+        job_id = job_data[0]  # Extract job ID
+
+        # Fetch applicants for this job
+        cursor.execute("""
+            SELECT u.id, u.name, u.skills, u.experience, u.hourly_rate, ja.id
+            FROM users u
+            JOIN job_applications ja ON u.id = ja.freelancer_id
+            WHERE ja.job_id = ? AND ja.status = 'applied'
+        """, (job_id,))
+
+        applicants = cursor.fetchall()
+        conn.close()
+
+        if not applicants:
+            print(f"No applicants for the job '{job_title}' yet.")
+            return
+
+        # Display applicants
+        print(f"\nApplicants for '{job_title}':\n" + "=" * 50)
+        for freelancer_id, name, skills, experience, hourly_rate, application_id in applicants:
+            print(f"[{name}]")  # <-- Freelancer Name instead of ID
+            print(f"  Skills: {skills}")
+            print(f"  Experience: {experience}")
+            print(f"  Hourly Rate: ${hourly_rate:.2f}/hr")
+            print("=" * 50)
+
+        # Manage applicants
+        while True:
+            action = input("\nEnter Freelancer Name to manage application or 'exit' to return: ").strip()
+
+            if action.lower() == "exit":
+                break
+
+            applicant = next((app for app in applicants if app[1].lower() == action.lower()), None)
+
+            if not applicant:
+                print("Invalid Freelancer Name. Try again.")
+                continue
+
+            _, name, skills, experience, hourly_rate, application_id = applicant
+            self.manage_applicant(application_id, name, skills, experience, hourly_rate)
+
+    def manage_applicant(self, application_id, name, skills, experience, hourly_rate):
+        """Allows the employer to view the applicant profile and accept/reject them."""
+
+        print(f"\n[Profile - {name}]")
+        print(f"  Skills: {skills}")
+        print(f"  Experience: {experience}")
+        print(f"  Hourly Rate: ${hourly_rate:.2f}/hr")
+
+        # Accept or Reject
+        while True:
+            decision = input("\nAccept (A) or Reject (R) this applicant? ").strip().lower()
+            if decision in ["a", "r"]:
+                new_status = "accepted" if decision == "a" else "rejected"
+                print(f"{name} has been {'accepted' if decision == 'a' else 'rejected'}.")
+
+                # Update database
+                conn = sqlite3.connect("freelancer_marketplace.db")
+                cursor = conn.cursor()
+                cursor.execute("UPDATE job_applications SET status = ? WHERE id = ?", (new_status, application_id))
+                conn.commit()
+                conn.close()
+                break
+            else:
+                print("Invalid input. Please enter 'A' to accept or 'R' to reject.")
         
-    def view_applicants(self, job):
-        """Displays applicants for a specific job posted by the employer."""
-        if job in self.posted_jobs:
-            return job.applicants
-        else:
-            raise ValueError("This job was not posted by this employer.")
-    
-    def accept_proposal(self, job, freelancer):
-        """Accepts a freelancer's application for a job."""
-        if job in self.posted_jobs and freelancer in job.applicants:
-            return f"{freelancer.name} has been accepted for {job.title}"
-        else:
-            raise ValueError("Invalid job or freelancer.")
-    
-    def reject_proposal(self, job, freelancer):
-        """Rejects a freelancer's application for a job."""
-        if job in self.posted_jobs and freelancer in job.applicants:
-            job.applicants.remove(freelancer)
-            return f"{freelancer.name} has been rejected for {job.title}"
-        else:
-            raise ValueError("Invalid job or freelancer.")
+    def print_posted_jobs(self):
+        """Fetch and print all jobs posted by the employer."""
+        conn = sqlite3.connect("freelancer_marketplace.db")
+        cursor = conn.cursor()
+
+        cursor.execute("""
+            SELECT id, title, description, budget, skills_required, duration, status
+            FROM jobs
+            WHERE employer_id = ?
+        """, (self.id,))
+
+        jobs = cursor.fetchall()
+        conn.close()
+
+        if not jobs:
+            print("You have not posted any jobs yet.")
+            return
+
+        print("\n--- Your Posted Jobs ---")
+        for job in jobs:
+            job_id, title, description, budget, skills, duration, status = job
+            print(f"\nJob ID: {job_id}\nTitle: {title}\nDescription: {description}\nBudget: ${budget}\nSkills Required: {skills}\nDuration: {duration}\nStatus: {status}")
+            print("-" * 50)
 
 def freelancer_menu(user):
     """Handles freelancer actions like browsing jobs and tracking applications."""
@@ -323,9 +457,9 @@ def freelancer_menu(user):
 
         if choice == "1":
             user.browse_jobs()  # Display jobs without clearing the terminal again
-        elif choice == "2":
-            job_id = input("Enter Job ID to apply: ")
-            user.apply_for_job(job_id)
+        #elif choice == "2":
+           # job_id = input("Enter Job ID to apply: ")
+            #user.apply_job(job_id)
         elif choice == "3":
             user.track_applications()
         elif choice == "4":
@@ -339,9 +473,9 @@ def freelancer_menu(user):
 def employer_menu(user):
     """Handles employer actions like posting jobs and managing applications."""
     while True:
-        os.system("cls")
+        os.system("cls")  # Clear the terminal
         print("\n--- Employer Dashboard ---")
-        print("[1] Post a Job\n[2] View Applicants\n[3] Manage Payments\n[4] Logout")
+        print("[1] Post a Job\n[2] View Applicants\n[3] Manage Payments\n[4] View Posted Jobs\n[5] Logout")
         choice = input("Select an option: ")
 
         if choice == "1":
@@ -358,18 +492,29 @@ def employer_menu(user):
             time.sleep(2)
 
         elif choice == "2":
-            job_id = input("Enter Job ID to view applicants: ")
-            Employer.view_applicants(job_id)
+            try:
+                job_title = input("Enter Job ID to view applicants: ") # Convert to int
+                user.view_applicants(job_title)
+                input("\nPress Enter to return to the dashboard...")  # Pause before clearing screen
+            except ValueError:
+                print("Invalid input! Job ID must be a number.")
+                time.sleep(2)
 
         elif choice == "3":
             manage_payments(user)
 
         elif choice == "4":
+            user.print_posted_jobs()  # Correct way to call the method
+            input("\nPress Enter to return to the dashboard...")  # Pause before clearing screen
+
+        elif choice == "5":
             print("Logging out...")
             break  # Exit the Employer dashboard and return to the main menu
+
         else:
             print("Invalid choice! Please try again.")
             time.sleep(2)
+
 
 
 def manage_payments(user):
@@ -401,7 +546,7 @@ def main():
     init_db()  # Initialize the database
     while True:
         display_header("Welcome to ProDigi")
-        print("[1] Sign Up\n[2] Login\n[3] Display Users\n[4] Exit\n[5] Database Checker")
+        print("[1] Sign Up\n[2] Login\n[3] Exit")
         divider()
         choice = input("Select an option: ")
 
@@ -442,18 +587,9 @@ def main():
                     break
 
         elif choice == "3":
-            # Display All Users
-            User.display_all_users()
-
-        elif choice == "4":
             # Exit
             print("Exiting... Goodbye!")
             break
-        elif choice == "5":
-            # Database checker
-            display_jobs_table()
-            break
-        
         else:
             print("Invalid choice! Please try again.")
             time.sleep(2)
