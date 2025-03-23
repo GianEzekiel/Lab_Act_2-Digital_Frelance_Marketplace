@@ -1,5 +1,6 @@
 import sqlite3
-from main import Freelancer, display_header, divider  # Ensure Freelancer class exists in main.py
+from main import Freelancer # Ensure Freelancer class exists in main.py
+from utils import Utility
 
 class Job:
     def __init__(self, title, description, budget, skillrequired, duration, applicants=None):
@@ -47,10 +48,10 @@ class Application:
         applications = cursor.fetchall()
         conn.close()
         
-        display_header("Job Applications")
+        Utility.display_header("Job Applications")
         for app in applications:
             print(app)
-        divider()
+        Utility.divider()
         
     
         

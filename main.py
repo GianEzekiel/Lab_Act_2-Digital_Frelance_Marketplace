@@ -2,6 +2,7 @@ import sqlite3
 import hashlib
 import os
 import time
+from utils import Utility
 import job_system
 import freelancer_marketplace
 
@@ -25,24 +26,6 @@ def init_db():
     conn.commit()
     conn.close()
 
-def display_header(title):
-    print("=" * 35)
-    print(f"{title.center(35)}")
-    print("=" * 35)
-
-def divider():
-    print("-" * 35)
-
-def display_menu(title=None, options=[]):
-    if title:  # Only display header if title is provided
-        display_header(title)
-    
-    for i, option in enumerate(options, 1):
-        print(f"[{i}] {option}")
-    divider()
-    return input("Select an option: ")
-
-
 class User:
     def __init__(self, id, username, password, role):
         self.id = id  # Initialize the id attribute
@@ -53,7 +36,6 @@ class User:
     def hash_password(self, password):
         return hashlib.sha256(password.encode()).hexdigest()
 
-
     @classmethod
     def sign_up(cls, username, password, role):
         conn = sqlite3.connect("freelancer_marketplace.db")
@@ -63,7 +45,7 @@ class User:
         if cursor.fetchone():
             print("\nUsername already taken!")
             time.sleep(1.5)
-            os.system("cls")
+            Utility.clear_screen()
             conn.close()
             return None
 
@@ -71,8 +53,8 @@ class User:
 
         if role == "1":
             role = "Freelancer"
-            os.system("cls")
-            display_header("Create Your Freelancer Profile")
+            Utility.clear_screen()
+            Utility.display_header("Create Your Freelancer Profile")
             name = input("Enter your name: ")
             skills = input("Enter your skills (comma separated): ")
             experience = input("Enter your experience: ")
@@ -85,8 +67,8 @@ class User:
                 (username, hashed_password, role, name, skills, experience, hourly_rate, payment_method))
         elif role == "2":
             role = "Employer"
-            os.system("cls")
-            display_header("Create Your Employer Account")
+            Utility.clear_screen()
+            Utility.display_header("Create Your Employer Account")
             company_name = input("Enter your company name: ")
 
             cursor.execute("""
@@ -106,11 +88,10 @@ class User:
 
         print("\nSign-up successful! You can now log in.")
         time.sleep(2)
-        os.system("cls")
+        Utility.clear_screen()
 
         # Return the new User instance with all required arguments
         return cls(user_id, username, hashed_password, role)  
-
    
     @classmethod
     def login(cls, username, password):
@@ -123,7 +104,7 @@ class User:
         if user_data and user_data[2] == hashlib.sha256(password.encode()).hexdigest():
             print(f"\nLogin successful! Welcome, {username}.")
             time.sleep(2)
-            os.system("cls")
+            Utility.clear_screen()
 
             # Extract only the necessary values
             user_id, username, password, role = user_data
@@ -135,7 +116,7 @@ class User:
 
         print("\nInvalid username or password!")
         time.sleep(2)
-        os.system("cls")
+        Utility.clear_screen()
         return None
 
        
@@ -147,15 +128,15 @@ class User:
         users = cursor.fetchall()
         conn.close()
        
-        display_header("All Users")
+        Utility.display_header("All Users")
         for user in users:
             print(user)
-        divider()
+        Utility.divider()
    
     def logout(self):
         print(f"\n{self.username} has logged out.")
         time.sleep(2)
-        os.system("cls")
+        Utility.clear_screen()
        
 class Freelancer(User):
     def __init__(self, id, username, password, role, name=None, skills=None, experience=None, hourly_rate=None, payment_method=None, company_name=None):
@@ -184,8 +165,8 @@ class Freelancer(User):
                 return  # Only return if no jobs are available
 
             # Display all jobs
-            os.system("cls")
-            display_header("Available Jobs")
+            Utility.clear_screen()
+            Utility.display_header("Available Jobs")
             for index, job in enumerate(jobs):
                 job_id, title, description, budget, skills_required, duration = job
                 print(f"[{job_id}] Title: {title}")
@@ -196,9 +177,9 @@ class Freelancer(User):
 
                 # Only print divider if it's not the last job
                 if index < len(jobs) - 1:
-                    divider()
+                    Utility.divider()
 
-            choice = display_menu("Menu", ["Apply Job", "Exit to Dashboard"])
+            choice = Utility.display_menu("Menu", ["Apply Job", "Exit to Dashboard"])
 
             if choice == "1":
                 self.apply_job()
@@ -221,12 +202,12 @@ class Freelancer(User):
         cursor.execute("SELECT id FROM jobs WHERE title LIKE ?", ('%' + job_title + '%',))
         job = cursor.fetchone()
 
-        os.system("cls")
-        display_header("Apply Job")
+        Utility.clear_screen()
+        Utility.display_header("Apply Job")
 
         if not job:
             print("Job not found. Please try again.")
-            divider()
+            Utility.divider()
         else:
             job_id = job[0]
 
@@ -238,7 +219,7 @@ class Freelancer(User):
 
             conn.commit()
             print(f"Applied for '{job_title}' successfully!")
-            divider()
+            Utility.divider()
 
         conn.close()
         input("Press Enter to Return...")  # Prevents instant return
@@ -263,21 +244,21 @@ class Freelancer(User):
             print("You have not applied to any jobs yet.")
             return
 
-        os.system("cls")
-        display_header("Job Applications")
+        Utility.clear_screen()
+        Utility.display_header("Job Applications")
         for app_id, title, budget, status in applications:
             print(f"Application ID: {app_id}")
             print(f"Job Title: {title}")
             print(f"Budget: ${budget}")
             print(f"Status: {status}")
-            divider()
+            Utility.divider()
        
         input("Press Enter to Return...")
    
     def edit_profile(self):
         conn = sqlite3.connect("freelancer_marketplace.db")
         cursor = conn.cursor()
-        display_header("Edit Profile")
+        Utility.display_header("Edit Profile")
         print(f"[1] Name: {self.name}\n[2] Skills: {self.skills}\n[3] Experience: {self.experience}\n[4] Hourly Rate: ${self.hourly_rate}\n[5] Payment Method: {self.payment_method}")
         choice = input("Select field to edit [1-5] or [6] Back: ")
        
@@ -297,7 +278,7 @@ class Freelancer(User):
             self.payment_method = input("Enter new payment method: ")
             cursor.execute("UPDATE users SET payment_method = ? WHERE username = ?", (self.payment_method, self.username))
         elif choice == "6":
-            os.system("cls")
+            Utility.clear_screen()
             return
        
         conn.commit()
@@ -372,14 +353,14 @@ class Employer(User):
         # Manage applicants
         while True:
             # Display applicants
-            os.system("cls")
-            display_header(f"Applicants for {job_title}")
+            Utility.clear_screen()
+            Utility.display_header(f"Applicants for {job_title}")
             for freelancer_id, name, skills, experience, hourly_rate, application_id in applicants:
                 print(f"  Applicant: {name}")  # <-- Freelancer Name instead of ID
                 print(f"  Skills: {skills}")
                 print(f"  Experience: {experience}")
                 print(f"  Hourly Rate: ${hourly_rate:.2f}/hr")
-                divider()
+                Utility.divider()
             action = input("Enter Applicant Name or type 'exit': ").strip()
 
             if action.lower() == "exit":
@@ -398,12 +379,12 @@ class Employer(User):
     def manage_applicant(self, application_id, name, skills, experience, hourly_rate):
         """Allows the employer to view the applicant profile and accept/reject them."""
 
-        os.system("cls")
-        display_header(f"{name}'s Profile")
+        Utility.clear_screen()
+        Utility.display_header(f"{name}'s Profile")
         print(f"  Skills: {skills}")
         print(f"  Experience: {experience}")
         print(f"  Hourly Rate: ${hourly_rate:.2f}/hr")
-        divider()
+        Utility.divider()
 
         # Accept or Reject
         while True:
@@ -441,19 +422,19 @@ class Employer(User):
             print("You have not posted any jobs yet.")
             return
 
-        os.system("cls")
-        display_header("Your Posted Jobs")
+        Utility.clear_screen()
+        Utility.display_header("Your Posted Jobs")
         for job in jobs:
             job_id, title, description, budget, skills, duration, status = job
             print(f"Job ID: {job_id}\nTitle: {title}\nDescription: {description}\nBudget: ${budget}\nSkills Required: {skills}\nDuration: {duration}\nStatus: {status}")
-            divider()
+            Utility.divider()
 
 
 def freelancer_menu(user):
     """Handles freelancer actions like browsing jobs and tracking applications."""
     while True:
-        os.system("cls")  # Clear the terminal only once at the start of the loop
-        choice = display_menu(f"{user.role} Menu", ["Browse and Apply Jobs", "Track Applications", "Edit Profile", "Logout"])
+        Utility.clear_screen()  # Clear the terminal only once at the start of the loop
+        choice = Utility.display_menu(f"{user.role} Menu", ["Browse and Apply Jobs", "Track Applications", "Edit Profile", "Logout"])
 
         if choice == "1":
             user.browse_jobs()  # Display jobs without clearing the terminal again
@@ -473,13 +454,13 @@ def freelancer_menu(user):
 def employer_menu(user):
     """Handles employer actions like posting jobs and managing applications."""
     while True:
-        os.system("cls")  # Clear the terminal
-        choice = display_menu(f"{user.role} Menu", ["Post a Job", "View Applicants", "Manage Payments", "View Posted Jobs", "Logout"])
+        Utility.clear_screen()  # Clear the terminal
+        choice = Utility.display_menu(f"{user.role} Menu", ["Post a Job", "View Applicants", "Manage Payments", "View Posted Jobs", "Logout"])
 
         if choice == "1":
             # Collect all required job details
-            os.system("cls")
-            display_header("Post Job")
+            Utility.clear_screen()
+            Utility.display_header("Post Job")
             title = input("Enter Job Title: ")
             description = input("Enter Job Description: ")
             budget = float(input("Enter Budget: "))
@@ -513,8 +494,8 @@ def employer_menu(user):
 def manage_payments(user):
     """Handles employer payments, milestones, and approvals."""
     while True:
-        os.system("cls")
-        display_header("Payment Management")
+        Utility.clear_screen()
+        Utility.display_header("Payment Management")
         print("[1] Deposit Funds\n[2] Set Milestones\n[3] Approve Work & Release Payment\n[4] Back")
         choice = input("Select an option: ")
 
@@ -533,21 +514,21 @@ def manage_payments(user):
             break
 
 def display_sign_up():
-    os.system("cls")
-    display_header("Sign Up")
+    Utility.clear_screen()
+    Utility.display_header("Sign Up")
     username = input("Enter username: ")
     password = input("Enter password: ")
 
-    os.system("cls")
-    display_header("Select Your Role")
+    Utility.clear_screen()
+    Utility.display_header("Select Your Role")
     print("[1] Freelancer - Find and apply for jobs\n[2] Employer - Post jobs and hire talent ")
-    divider()
+    Utility.divider()
     role = input("Enter role: ")
     User.sign_up(username, password, role)
 
 def display_login():
-    os.system("cls")
-    display_header("Login")
+    Utility.clear_screen()
+    Utility.display_header("Login")
     username = input("Enter username: ")
     password = input("Enter password: ")
     return User.login(username, password)
@@ -555,10 +536,10 @@ def display_login():
 def main():
     init_db()  # Initialize the database
     while True:
-        os.system("cls")
-        display_header("Welcome to ProDigi")
+        Utility.clear_screen()
+        Utility.display_header("Welcome to ProDigi")
         print("[1] Sign Up\n[2] Login\n[3] Exit")
-        divider()
+        Utility.divider()
         choice = input("Select an option: ")
 
         if choice == "1":
@@ -584,8 +565,7 @@ def main():
         else:
             print("\nInvalid choice! Please try again.")
             time.sleep(1.5)
-            os.system("cls")
-
+            Utility.clear_screen()
 
 if __name__ == "__main__":
     main()
