@@ -78,7 +78,7 @@ def employer_menu(user):
         elif choice == "3":
             manage_payments(user)
         elif choice == "4":
-            user.print_posted_jobs()  # Correct way to call the method
+            user.view_posted_jobs()  # Correct way to call the method
             input("Press Enter to Return...")  # Pause before clearing screen
         elif choice == "5":
             user.logout()

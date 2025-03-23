@@ -123,7 +123,7 @@ class Employer(User):
             else:
                 print("Invalid input. Please enter 'A' to accept or 'R' to reject.\n")
        
-    def print_posted_jobs(self):
+    def view_posted_jobs(self):
         """Fetch and print all jobs posted by the employer."""
         conn = sqlite3.connect("freelancer_marketplace.db")
         cursor = conn.cursor()
