@@ -90,5 +90,3 @@ CREATE TABLE IF NOT EXISTS payments (
 # Commit and close connection
 conn.commit()
 conn.close()
-
-print("Database and tables created successfully!")
