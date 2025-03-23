@@ -51,9 +51,10 @@ class User:
             company_name = input("Enter your company name: ")
 
             cursor.execute("""
-                INSERT INTO users (username, password, role, company_name)
-                VALUES (?, ?, ?, ?)""",
-                (username, hashed_password, role, company_name))
+                INSERT INTO users (username, password, role, name, company_name)
+                VALUES (?, ?, ?, ?, ?)""",
+                (username, hashed_password, role, "N/A", company_name))  # Provide default "N/A" for name
+
         else:
             print("Invalid choice!")
             conn.close()
@@ -61,6 +62,9 @@ class User:
 
         # Get the last inserted ID
         user_id = cursor.lastrowid  
+
+        # ✅ Create a wallet entry for the new user
+        cursor.execute("INSERT INTO wallet (user_id, balance) VALUES (?, ?)", (user_id, 0.0))
 
         conn.commit()
         conn.close()
