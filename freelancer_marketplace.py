@@ -63,7 +63,7 @@ CREATE TABLE IF NOT EXISTS milestones (
     job_id INTEGER NOT NULL,
     freelancer_id INTEGER NOT NULL,
     title TEXT NOT NULL,
-    status TEXT CHECK(status IN ('pending', 'approved', 'completed')) DEFAULT 'pending',
+    status TEXT CHECK(status IN ('pending', 'for approval', 'approved')) DEFAULT 'pending',
     payment REAL NOT NULL,
     FOREIGN KEY (job_id) REFERENCES jobs(id),
     FOREIGN KEY (freelancer_id) REFERENCES users(id)
@@ -89,9 +89,8 @@ CREATE TABLE IF NOT EXISTS payments (
 
 cursor.execute('''
     CREATE TABLE IF NOT EXISTS temporary_wallet (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        freelancer_id INTEGER PRIMARY KEY, 
         employer_id INTEGER NOT NULL,
-        freelancer_id INTEGER NOT NULL,
         balance REAL DEFAULT 0.0,
         FOREIGN KEY (freelancer_id) REFERENCES users(id) ON DELETE CASCADE,
         FOREIGN KEY (employer_id) REFERENCES users(id) ON DELETE CASCADE

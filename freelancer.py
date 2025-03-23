@@ -122,124 +122,47 @@ class Freelancer(User):
             Utility.divider()
        
         input("Press Enter to Return...")
-   
-    def work_in_progress(self):
-            """Display work in progress and allow freelancer to submit work."""
-        
-            conn = sqlite3.connect("freelancer_marketplace.db")
-            cursor = conn.cursor()
 
-            # Fetch jobs where freelancer has been accepted and is working
-            cursor.execute('''
-                SELECT jobs.id, jobs.title
-                FROM jobs
-                JOIN job_applications ON jobs.id = job_applications.job_id
-                WHERE job_applications.freelancer_id = ? AND job_applications.status = 'accepted'
-                AND jobs.status = 'in_progress'
-            ''', (self.id,))
+    def submit_milestone(self, milestone_title):
+        """Submits a milestone for approval based on the provided milestone title."""
 
-            jobs = cursor.fetchall()
-
-            if not jobs:
-                print("\nNo active jobs found.")
-                time.sleep(1.5)
-                conn.close()
-                return
-
-            # Display jobs
-            print("\nSelect a job:")
-            for idx, (job_id, job_title) in enumerate(jobs, 1):
-                print(f"[{idx}] {job_title}")
-
-            try:
-                choice = int(input("Enter job number: "))
-                job_id = jobs[choice - 1][0]  # Get selected job_id
-            except (ValueError, IndexError):
-                print("Invalid selection.")
-                conn.close()
-                return
-
-            # Fetch milestones for the selected job
-            cursor.execute('''
-                SELECT title, payment, status
-                FROM milestones
-                WHERE job_id = ? AND freelancer_id = ?
-            ''', (job_id, self.id))
-
-            milestones = cursor.fetchall()
-
-            if not milestones:
-                print("No milestones found for this job.")
-                conn.close()
-                return
-
-            os.system("cls")  # Clear screen for better display
-            print("=" * 40)
-            print(" " * 10 + "Work in Progress")
-            print("=" * 40)
-            print(f"Job: {jobs[choice - 1][1]}")
-            print("\nMilestones:")
-
-            for idx, (title, payment, status) in enumerate(milestones, 1):
-                print(f"[{idx}] {title} (Php {payment}) [{status}]")
-
-            submit = input("\nSubmit Work? [Y/N]: ").strip().lower()
-            if submit == "y":
-                self.submit_milestone(job_id)
-
-            conn.close()
-
-    def submit_milestone(self, job_id):
-        """Freelancer picks a milestone to submit for approval using the milestone title."""
-    
         conn = sqlite3.connect("freelancer_marketplace.db")
         cursor = conn.cursor()
 
-        # Fetch milestones for the freelancer
+        # 🔍 Fetch milestone based on the provided title
         cursor.execute('''
-            SELECT title, payment, status
-            FROM milestones
-            WHERE job_id = ? AND freelancer_id = ?
-        ''', (job_id, self.id))
-
-        milestones = cursor.fetchall()
-
-        if not milestones:
-            print("No milestones found for this job.")
-            conn.close()
-            return
-
-        print("\nSelect a milestone to submit:")
-        for idx, (title, amount, status) in enumerate(milestones, 1):
-            print(f"[{idx}] {title} (Php {amount}) [{status}]")
-
-        milestone_title = input("\nEnter milestone title to submit: ").strip()
-
-        # Check if the milestone exists
-        cursor.execute('''
-            SELECT status FROM milestones
-            WHERE job_id = ? AND freelancer_id = ? AND title = ?
-        ''', (job_id, self.id, milestone_title))
+            SELECT job_id, status FROM milestones
+            WHERE freelancer_id = ? AND title = ?
+        ''', (self.id, milestone_title))
 
         milestone = cursor.fetchone()
 
         if not milestone:
-            print("Error: Milestone not found or does not belong to you.")
-        else:
-            status = milestone[0]
-        
-            if status == "Complete":
-                print("This milestone has already been completed.")
-            else:
-                # Update status to "Pending Approval"
-                cursor.execute('''
-                    UPDATE milestones
-                    SET status = 'Pending Approval'
-                    WHERE job_id = ? AND freelancer_id = ? AND title = ?
-                ''', (job_id, self.id, milestone_title))
+            print(f"Error: Milestone '{milestone_title}' not found or does not belong to you.")
+            time.sleep(1.5)
+            conn.close()
+            return
 
-                conn.commit()
-                print(f"Submitting '{milestone_title}' for approval...")
+        job_id, status = milestone
+
+        print(f"DEBUG: Found milestone '{milestone_title}' with status '{status}'")  # Debugging
+
+        if status == "approved":
+            print("This milestone has already been approved.")
+        elif status == "for approval":
+            print("This milestone is already waiting for employer approval.")
+        else:
+            # Update status to "for approval"
+            cursor.execute('''
+                UPDATE milestones
+                SET status = 'for approval'
+                WHERE job_id = ? AND freelancer_id = ? AND title = ?
+            ''', (job_id, self.id, milestone_title))
+
+            conn.commit()
+            print(f"Submitting '{milestone_title}' for approval...")
+
+        time.sleep(1.5)
         conn.close()
 
     def view_and_edit_profile(self):

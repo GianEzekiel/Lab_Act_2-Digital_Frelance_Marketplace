@@ -26,7 +26,7 @@ def init_db():
 
     # Recreate the table with the correct schema
     cursor.execute('''
-        CREATE TABLE temporary_wallet (
+        CREATE TABLE IF NOT EXISTS temporary_wallet (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             employer_id INTEGER NOT NULL,
             freelancer_id INTEGER NOT NULL,
@@ -180,8 +180,8 @@ def select_job(user):
     return selected_job_id  # Return job_id to pass into progress_display
 
 def progress_display(user, job_id):
-    """Displays work in progress for both freelancers and employers."""
-    
+    """Displays work in progress for both freelancers and employers, including temporary wallet balance."""
+
     def display_job_details():
         """Fetch and display job details along with milestones and remaining budget."""
         Utility.clear_screen()
@@ -239,6 +239,16 @@ def progress_display(user, job_id):
             print("\nMilestones:")
             for idx, (milestone_id, title, payment, status) in enumerate(milestones, 1):
                 print(f"[{idx}] {title} (Php {payment}) [{status}]")
+
+        # 🟢 Display temporary wallet for freelancers
+        if user.role == "freelancer":
+            cursor.execute("SELECT balance FROM temporary_wallet WHERE freelancer_id = ?", (user.id,))
+            temp_wallet_balance = cursor.fetchone()
+
+            if temp_wallet_balance:
+                print(f"\n🟢 Temporary Wallet Balance: Php {temp_wallet_balance[0]}")
+            else:
+                print("\n🟢 Temporary Wallet Balance: Php 0.00")
 
         conn.close()
         return True
@@ -305,12 +315,12 @@ def progress_display(user, job_id):
             else:
                 print("Invalid choice. Please select a valid option.")
 
-
         # Add a general exit option for both roles
-        if user.role not in ["Freelancer", "mployer"]:
+        if user.role not in ["Freelancer", "Employer"]:
             print(f"DEBUG: User role is '{user.role}'")
             print("Invalid role. Exiting...")
             break
+
 
 def display_sign_up():
     Utility.clear_screen()
@@ -335,12 +345,6 @@ def display_login():
 def main():
     init_db()  # Initialize the database
     conn = sqlite3.connect("freelancer_marketplace.db")
-    cursor = conn.cursor()
-    cursor.execute("PRAGMA table_info(temporary_wallet)")
-    columns = cursor.fetchall()
-    for column in columns:
-        print(column)
-    conn.close()
     while True:
         Utility.clear_screen()
         Utility.display_header("Welcome to ProDigi")

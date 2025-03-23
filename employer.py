@@ -197,19 +197,29 @@ class Employer(User):
             print("Milestone is already approved.")
         else:
             # Ensure employer has enough balance
-            if self.wallet.balance < amount:
+            cursor.execute("SELECT balance FROM wallet WHERE user_id = ?", (self.id,))
+            employer_balance = cursor.fetchone()[0]
+
+            if employer_balance < amount:
                 print("Error: Insufficient funds in employer wallet!")
                 conn.close()
                 return
 
             # Deduct amount from employer's wallet
-            new_employer_balance = self.wallet.balance - amount
+            new_employer_balance = employer_balance - amount
             cursor.execute("UPDATE wallet SET balance = ? WHERE user_id = ?", (new_employer_balance, self.id))
 
-            # Add amount to freelancer's temporary wallet
-            cursor.execute("INSERT INTO temporary_wallet (freelancer_id, balance) VALUES (?, ?) "
-                        "ON CONFLICT(freelancer_id) DO UPDATE SET balance = balance + ?",
-                        (freelancer_id, amount, amount))
+            # Check if freelancer exists in temporary_wallet
+            cursor.execute("SELECT balance FROM temporary_wallet WHERE freelancer_id = ?", (freelancer_id,))
+            temp_wallet = cursor.fetchone()
+
+            if temp_wallet:
+                # Freelancer exists → Update balance
+                new_balance = temp_wallet[0] + amount
+                cursor.execute("UPDATE temporary_wallet SET balance = ? WHERE freelancer_id = ?", (new_balance, freelancer_id))
+            else:
+                # Freelancer does not exist → Insert new row
+                cursor.execute("INSERT INTO temporary_wallet (freelancer_id, employer_id, balance) VALUES (?, ?, ?)", (freelancer_id, self.id, amount))
 
             # Mark milestone as approved
             cursor.execute("UPDATE milestones SET status = 'approved' WHERE id = ?", (milestone_id,))
@@ -225,8 +235,10 @@ class Employer(User):
                 self.finalize_payment(freelancer_id, job_id, conn, cursor)
 
         conn.close()
+
+
         
-    def finalize_payment(freelancer_id, job_id, conn, cursor):
+    def finalize_payment(self, freelancer_id, job_id, conn, cursor):
         """Transfers all milestone payments from temporary wallet to freelancer's main wallet once all milestones are completed."""
         
         # Get total balance from the temporary wallet
