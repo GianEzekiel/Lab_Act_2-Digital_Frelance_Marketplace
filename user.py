@@ -2,7 +2,7 @@ import sqlite3
 import hashlib
 import os
 import time
-
+from payment_system import Wallet
 from utils import Utility
 
 class User:
@@ -70,7 +70,7 @@ class User:
         conn.close()
 
         print("\nSign-up successful! You can now log in.")
-        time.sleep(2)
+        time.sleep(1.5)
         Utility.clear_screen()
 
         # Return the new User instance with all required arguments
@@ -86,7 +86,7 @@ class User:
 
         if user_data and user_data[2] == hashlib.sha256(password.encode()).hexdigest():
             print(f"\nLogin successful! Welcome, {username}.")
-            time.sleep(2)
+            time.sleep(1.5)
             Utility.clear_screen()
 
             # Extract only the necessary values
@@ -100,30 +100,51 @@ class User:
                 return Employer(user_id, username, password, role)  # Pass only the expected values
 
         print("\nInvalid username or password!")
-        time.sleep(2)
+        time.sleep(1.5)
         Utility.clear_screen()
         return None
     
-    @classmethod
     def logout(self):
         print(f"\n{self.username} has logged out.")
-        time.sleep(2)
-
-       
-    @staticmethod
-    def display_all_users():
-        conn = sqlite3.connect("freelancer_marketplace.db")
-        cursor = conn.cursor()
-        cursor.execute("SELECT * FROM users")
-        users = cursor.fetchall()
-        conn.close()
-       
-        Utility.display_header("All Users")
-        for user in users:
-            print(user)
-        Utility.divider()
-   
-    def logout(self):
-        print(f"\n{self.username} has logged out.")
-        time.sleep(2)
+        time.sleep(1.5)
         Utility.clear_screen()
+
+    def wallet_menu(self):
+        """Handles wallet balance and payment settings."""
+        if not hasattr(self, "wallet"):  # Ensure wallet is initialized
+            self.wallet = Wallet(self.username)
+
+        while True:
+            os.system("cls")
+            self.wallet.balance = self.wallet.get_balance_from_db()  # ✅ Refresh balance from DB
+            Utility.display_header("Wallet")
+            print(f"Current Balance: Php {self.wallet.balance:.2f}\n")
+            print("[1] Deposit Funds\n[2] Withdraw Funds\n[3] Back")
+            Utility.divider()
+            choice = input("Select an option: ").strip()
+
+            if choice == "1":
+                try:
+                    amount = float(input("Enter deposit amount: "))
+                    if amount > 0:
+                        self.wallet.deposit(amount)
+                    else:
+                        print("\nDeposit amount must be greater than zero!")
+                        time.sleep(1.5)
+                except ValueError:
+                    print("\nInvalid input! Please enter a valid number.")
+                    time.sleep(1.5)
+            elif choice == "2":
+                try:
+                    amount = float(input("Enter withdrawal amount: "))
+                    if amount > 0:
+                        self.wallet.withdraw(amount)
+                    else:
+                        print("Withdrawal amount must be greater than zero!")
+                except ValueError:
+                    print("Invalid input! Please enter a valid number.")
+            elif choice == "3":
+                break
+            else:
+                print("\nInvalid choice! Please try again.")
+                time.sleep(1.5)

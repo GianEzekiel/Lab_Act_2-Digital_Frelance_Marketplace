@@ -51,7 +51,7 @@ class Employer(User):
         job_data = cursor.fetchone()
 
         if not job_data:
-            print(f"You haven't posted a job titled '{job_title}'.")
+            print(f"\nYou haven't posted a job titled '{job_title}'.")
             conn.close()
             return
 
@@ -78,10 +78,10 @@ class Employer(User):
             Utility.clear_screen()
             Utility.display_header(f"Applicants for {job_title}")
             for freelancer_id, name, skills, experience, hourly_rate, application_id in applicants:
-                print(f"  Applicant: {name}")  # <-- Freelancer Name instead of ID
-                print(f"  Skills: {skills}")
-                print(f"  Experience: {experience}")
-                print(f"  Hourly Rate: ${hourly_rate:.2f}/hr")
+                print(f"Applicant: {name}")  # <-- Freelancer Name instead of ID
+                print(f"Skills: {skills}")
+                print(f"Experience: {experience}")
+                print(f"Hourly Rate: ${hourly_rate:.2f}/hr")
                 Utility.divider()
             action = input("Enter Applicant Name or type 'exit': ").strip()
 
@@ -97,15 +97,16 @@ class Employer(User):
 
             _, name, skills, experience, hourly_rate, application_id = applicant
             self.manage_applicant(application_id, job_id, name, skills, experience, hourly_rate)
+            break
 
     def manage_applicant(self, application_id, job_id, name, skills, experience, hourly_rate):
         """Allows the employer to view the applicant profile and accept/reject them."""
 
         Utility.clear_screen()
         Utility.display_header(f"{name}'s Profile")
-        print(f"  Skills: {skills}")
-        print(f"  Experience: {experience}")
-        print(f"  Hourly Rate: ${hourly_rate:.2f}/hr")
+        print(f"Skills: {skills}")
+        print(f"Experience: {experience}")
+        print(f"Hourly Rate: ${hourly_rate:.2f}/hr")
         Utility.divider()
 
         # Accept or Reject
@@ -216,50 +217,6 @@ class Employer(User):
                     print("Error: Insufficient funds in employer wallet!")
 
         conn.close()
-
-    def wallet_menu(self):
-        """Handles wallet balance and payment settings."""
-        if not hasattr(self, "wallet"):  # Ensure wallet is initialized
-            self.wallet = Wallet(self.username)
-
-        while True:
-            os.system("cls")
-            self.wallet.balance = self.wallet.get_balance_from_db()  # ✅ Refresh balance from DB
-            print("\n--- Wallet & Payment Settings ---")
-            print(f"Current Balance: Php {self.wallet.balance:.2f}")
-            print("[1] Deposit Funds\n[2] Withdraw Funds\n[3] View Payment History\n[4] Back")
-
-            choice = input("Select an option: ").strip()
-
-            if choice == "1":
-                try:
-                    amount = float(input("Enter deposit amount: "))
-                    if amount > 0:
-                        self.wallet.deposit(amount)
-                    else:
-                        print("Deposit amount must be greater than zero!")
-                except ValueError:
-                    print("Invalid input! Please enter a valid number.")
-           
-            elif choice == "2":
-                try:
-                    amount = float(input("Enter withdrawal amount: "))
-                    if amount > 0:
-                        self.wallet.withdraw(amount)
-                    else:
-                        print("Withdrawal amount must be greater than zero!")
-                except ValueError:
-                    print("Invalid input! Please enter a valid number.")
-
-            elif choice == "3":
-                self.view_payment_history()  # Ensure this function is implemented
-
-            elif choice == "4":
-                break
-
-            else:
-                print("Invalid choice! Please try again.")
-                time.sleep(2)
        
     def view_posted_jobs(self):
         """Fetch and print all jobs posted by the employer."""
@@ -282,8 +239,9 @@ class Employer(User):
             print("Debug: No jobs found in database for this employer.")
             return
 
-        print("\n--- Your Posted Jobs ---")
+        Utility.clear_screen()
+        Utility.display_header("Your Posted Jobs")
         for job in jobs:
             job_id, title, description, budget, skills, duration, status = job
-            print(f"\nJob ID: {job_id}\nTitle: {title}\nDescription: {description}\nBudget: ${budget}\nSkills Required: {skills}\nDuration: {duration}\nStatus: {status}")
-            print("-" * 50)
+            print(f"Job ID: {job_id}\nTitle: {title}\nDescription: {description}\nBudget: ${budget}\nSkills Required: {skills}\nDuration: {duration}\nStatus: {status}")
+            Utility.divider()

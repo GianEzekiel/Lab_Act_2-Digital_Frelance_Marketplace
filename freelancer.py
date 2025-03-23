@@ -30,7 +30,8 @@ class Freelancer(User):
             conn.close()
 
             if not jobs:
-                print("No jobs available at the moment.")
+                print("\nNo jobs available at the moment.")
+                time.sleep(1.5)
                 return  # Only return if no jobs are available
 
             # Display all jobs
@@ -48,7 +49,7 @@ class Freelancer(User):
                 if index < len(jobs) - 1:
                     Utility.divider()
 
-            choice = Utility.display_menu("Menu", ["Apply Job", "Exit to Dashboard"])
+            choice = Utility.display_menu("Options", ["Apply Job", "Back"], use_header=False)
 
             if choice == "1":
                 self.apply_job()
@@ -71,10 +72,6 @@ class Freelancer(User):
         cursor.execute("SELECT id FROM jobs WHERE title LIKE ?", ('%' + job_title + '%',))
         job = cursor.fetchone()
 
-
-        Utility.clear_screen()
-        Utility.display_header("Apply Job")
-
         if not job:
             print("Job not found. Please try again.")
             Utility.divider()
@@ -88,8 +85,7 @@ class Freelancer(User):
             """, (job_id, self.id))
 
             conn.commit()
-            print(f"Applied for '{job_title}' successfully!")
-            Utility.divider()
+            print(f"\nApplied for '{job_title}' successfully!\n")
 
         conn.close()
         input("Press Enter to Return...")  # Prevents instant return
@@ -111,7 +107,8 @@ class Freelancer(User):
         conn.close()
 
         if not applications:
-            print("You have not applied to any jobs yet.")
+            print("\nYou have not applied to any jobs yet.")
+            time.sleep(1.5)
             return
 
         Utility.clear_screen()
@@ -143,7 +140,8 @@ class Freelancer(User):
             jobs = cursor.fetchall()
 
             if not jobs:
-                print("No active jobs found.")
+                print("\nNo active jobs found.")
+                time.sleep(1.5)
                 conn.close()
                 return
 
@@ -243,51 +241,6 @@ class Freelancer(User):
                 print(f"Submitting '{milestone_title}' for approval...")
         conn.close()
 
-    def wallet_menu(self):
-        """Handles wallet balance and payment settings."""
-        if not hasattr(self, "wallet"):  # Ensure wallet is initialized
-            self.wallet = Wallet(self.username)
-
-        while True:
-            os.system("cls")
-            self.wallet.balance = self.wallet.get_balance_from_db()  # ✅ Refresh balance from DB
-            print("\n--- Wallet & Payment Settings ---")
-            print(f"Current Balance: Php {self.wallet.balance:.2f}")
-            print("[1] Deposit Funds\n[2] Withdraw Funds\n[3] View Payment History\n[4] Back")
-
-            choice = input("Select an option: ").strip()
-
-            if choice == "1":
-                try:
-                    amount = float(input("Enter deposit amount: "))
-                    if amount > 0:
-                        self.wallet.deposit(amount)
-                    else:
-                        print("Deposit amount must be greater than zero!")
-                except ValueError:
-                    print("Invalid input! Please enter a valid number.")
-        
-            elif choice == "2":
-                try:
-                    amount = float(input("Enter withdrawal amount: "))
-                    if amount > 0:
-                        self.wallet.withdraw(amount)
-                    else:
-                        print("Withdrawal amount must be greater than zero!")
-                except ValueError:
-                    print("Invalid input! Please enter a valid number.")
-
-
-            elif choice == "3":
-                self.view_payment_history()  # Ensure this function is implemented
-
-            elif choice == "4":
-                break
-
-            else:
-                print("Invalid choice! Please try again.")
-                time.sleep(2)
-
     def view_and_edit_profile(self):
         """View and edit freelancer profile."""
        
@@ -300,6 +253,7 @@ class Freelancer(User):
 
         if not profile:
             print("Error: Profile not found.")
+            time.sleep(1.5)
             conn.close()
             return
 
@@ -307,6 +261,7 @@ class Freelancer(User):
         name, skills, experience, hourly_rate, payment_method = profile
 
         # Display current profile details
+        Utility.clear_screen()
         Utility.display_header("Edit Profile")
         print(f"[1] Name: {name}")
         print(f"[2] Skills: {skills}")
@@ -314,8 +269,8 @@ class Freelancer(User):
         print(f"[4] Hourly Rate: ${hourly_rate}")
         print(f"[5] Payment Method: {payment_method}")
         print("[6] Go Back")
-
-        choice = input("\nSelect field to edit [1-5] or [6] to go back: ").strip()
+        Utility.divider()
+        choice = input("Select field to edit [1-5] or [6] to go back: ").strip()
 
         # Editing selected field
         if choice == "1":
@@ -346,10 +301,12 @@ class Freelancer(User):
             conn.close()
             return
         else:
-            print("Invalid choice. Please select a valid option.")
+            print("\nInvalid choice. Please select a valid option.")
+            time.sleep(1.5)
 
         # Commit changes and close connection
         conn.commit()
         conn.close()
        
-        print("Profile updated successfully!")
+        print("\nProfile updated successfully!")
+        time.sleep(1.5)

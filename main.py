@@ -31,7 +31,7 @@ def freelancer_menu(user):
     """Handles freelancer actions like browsing jobs and tracking applications."""
     while True:
         Utility.clear_screen()  # Clear the terminal only once at the start of the loop
-        choice = Utility.display_menu(f"{user.role} Menu", ["Browse and Apply Jobs", "Track Applications", "Work in Progress", "Wallet & Payment","Edit Profile", "Logout"])
+        choice = Utility.display_menu(f"{user.role} Menu", ["Browse and Apply Jobs", "Track Applications", "Work in Progress", "Wallet & Payment","Edit Profile", "Logout"], use_header=True)
 
         if choice == "1":
             user.browse_jobs()  # Display jobs without clearing the terminal again
@@ -44,7 +44,7 @@ def freelancer_menu(user):
         elif choice == "4":
             user.wallet_menu()
         elif choice == "5":
-            user.edit_profile()
+            user.view_and_edit_profile()
         elif choice == "6":
             user.logout()
             break  # Exit the freelancer dashboard
@@ -57,7 +57,7 @@ def employer_menu(user):
     """Handles employer actions like posting jobs and managing applications."""
     while True:
         Utility.clear_screen()  # Clear the terminal
-        choice = Utility.display_menu(f"{user.role} Menu", ["Post a Job", "View Applicants", "Work in Progress","Wallet & Payment Settings", "View Posted Jobs", "Logout"])
+        choice = Utility.display_menu(f"{user.role} Menu", ["Post a Job", "View Posted Jobs", "View Applicants", "Work in Progress","Wallet & Payment Settings", "Logout"], use_header=True)
 
         if choice == "1":
             # Collect all required job details
@@ -71,25 +71,25 @@ def employer_menu(user):
             # Call the post_job method with all required arguments
             user.post_job(title, description, budget, skill_required, duration)
             print("\nJob posted successfully!")
-            time.sleep(2)
+            time.sleep(1.5)
         elif choice == "2":
+            user.view_posted_jobs()  # Correct way to call the method
+            input("Press Enter to Return...")  # Pause before clearing screen
+        elif choice == "3":
             try:
-                job_title = input("Enter Job ID to view applicants: ") # Convert to int
+                job_title = input("\nEnter Job Title to View Applicants: ") # Convert to int
                 user.view_applicants(job_title)
                 input("\nPress Enter to Return...")  # Pause before clearing screen
             except ValueError:
                 print("Invalid input! Job ID must be a number.")
-                time.sleep(2)
-        elif choice == "3":
+                time.sleep(1.5)
+        elif choice == "4":
             job_id = select_job(user)  # Ensures the employer selects a job first
             if job_id:
                 progress_display(user, job_id)  # Pass selected job_id
             input("\nPress Enter to return to the dashboard...")
-        elif choice == "4":
-            user.wallet_menu()  # New function for wallet & payment
         elif choice == "5":
-            user.view_posted_jobs()  # Correct way to call the method
-            input("Press Enter to Return...")  # Pause before clearing screen
+            user.wallet_menu()  # New function for wallet & payment
         elif choice == "6":
             user.logout()
             break  # Exit the Employer dashboard and return to the main menu
@@ -144,11 +144,14 @@ def select_job(user):
 
     if not jobs:
         print("No active jobs found.")
+        time.sleep(1.5)
         return None
 
-    print("\nSelect a job:")
+    Utility.clear_screen()
+    Utility.display_header("Select Job")
     for idx, (job_id, title) in enumerate(jobs, 1):
         print(f"[{idx}] {title}")
+    Utility.divider()
 
     try:
         job_choice = int(input("Enter job number: ")) - 1
@@ -167,6 +170,7 @@ def select_job(user):
 def progress_display(user, job_id):
     """Displays work in progress for both freelancers and employers."""
 
+    Utility.clear_screen()
     Utility.display_header("Work in Progress")
 
     conn = sqlite3.connect("freelancer_marketplace.db")
@@ -188,7 +192,7 @@ def progress_display(user, job_id):
         conn.close()
         return
 
-    print(f"\nJob: {job_title}\nDescription: {job_description}\n")
+    print(f"Job: {job_title}\nDescription: {job_description}\n")
 
     # Fetch milestones based on the user role
     if user.role == "freelancer":
@@ -207,7 +211,7 @@ def progress_display(user, job_id):
     milestones = cursor.fetchall()
 
     if not milestones:
-        print("No milestones found for this job.")
+        print("No milestones found for this job.\n")
     else:
         print("\nMilestones:")
         for idx, (milestone_id, title, payment, status) in enumerate(milestones, 1):
@@ -218,13 +222,7 @@ def progress_display(user, job_id):
     # Options for freelancers
     if user.role == "Freelancer":
         while True:
-            print("\nOptions:")
-            print("1. Submit Milestone")
-            print("2. Go Back")
-
-
-            choice = input("Enter choice: ").strip()
-
+            choice = Utility.display_menu("Options", ["Submit Milestone", "Back"], use_header=False)
 
             if choice == "1":
                 milestone_title = input("Enter milestone title to submit: ").strip()
@@ -238,14 +236,7 @@ def progress_display(user, job_id):
     # Options for employers
     elif user.role == "Employer":
         while True:
-            print("\nOptions:")
-            print("1. Add Milestone")
-            print("2. Approve Milestone")
-            print("3. Go Back")
-
-
-            choice = input("Enter choice: ").strip()
-
+            choice = Utility.display_menu("Options", ["Add Milestone", "Approve Milestone", "Back"], use_header=False)
 
             if choice == "1":
                 user.add_milestone(job_id)
@@ -256,7 +247,6 @@ def progress_display(user, job_id):
                 break
             else:
                 print("Invalid choice. Please select a valid option.")
-
 
 def display_sign_up():
     Utility.clear_screen()
