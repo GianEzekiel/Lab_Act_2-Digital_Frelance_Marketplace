@@ -14,8 +14,21 @@ class Employer(User):
         self.wallet = Wallet(id)
 
     def post_job(self, title, description, budget, skill_required, duration):
-        """Creates a new job posting, adds it to the database, and returns the Job object."""
-       
+        """Creates a new job posting only if the employer's wallet balance is sufficient."""
+
+        # Ensure wallet is initialized
+        if not hasattr(self, "wallet"):
+            self.wallet = Wallet(self.username)
+
+        # Get employer's current wallet balance
+        current_balance = self.wallet.get_balance_from_db()
+
+        # Check if the employer has enough funds to post the job
+        if budget > current_balance:
+            print("❌ Error: Your budget exceeds your wallet balance. Please deposit more funds.")
+            time.sleep(2)
+            return False  # Prevent job posting
+
         # Create Job object in memory
         job = job_system.Job(title, description, budget, skill_required, duration, [])
 
@@ -37,8 +50,10 @@ class Employer(User):
 
         # Add job to employer's posted jobs list
         self.posted_jobs.append(job)
-
+        
+        print("✅ Job successfully posted!")
         return job  # Returning the job instance
+
 
     def view_applicants(self, job_title):
         """Displays applicants for a job posted by the employer."""
@@ -133,7 +148,7 @@ class Employer(User):
             else:
                 print("Invalid input. Please enter 'A' to accept or 'R' to reject.\n")
                 
-    def add_milestone(self, job_id):
+    def add_milestone(self, job_id, milestone_title, milestone_payment):
         """Allows an employer to add a milestone for a job."""
         conn = sqlite3.connect("freelancer_marketplace.db")
         cursor = conn.cursor()
@@ -149,75 +164,87 @@ class Employer(User):
 
         freelancer_id = freelancer[0]
 
-        title = input("Enter milestone title: ")
-        payment = float(input("Enter milestone payment: "))
-
         # Insert new milestone into the table
         cursor.execute('''
             INSERT INTO milestones (job_id, freelancer_id, title, status, payment)
             VALUES (?, ?, ?, 'pending', ?)
-        ''', (job_id, freelancer_id, title, payment))
+        ''', (job_id, freelancer_id, milestone_title, milestone_payment))
 
         conn.commit()
         conn.close()
 
         print("Milestone added successfully!")
+
        
     def approve_milestone(self, milestone_title):
-        """Allows an employer to approve a milestone and transfer funds to the freelancer."""
+        """Approves a milestone and temporarily holds the payment until all milestones are completed."""
+
         conn = sqlite3.connect("freelancer_marketplace.db")
         cursor = conn.cursor()
 
-
-        # Fetch milestone details including the freelancer_id and payment amount
-        cursor.execute("SELECT id, payment, freelancer_id, status FROM milestones WHERE title = ?", (milestone_title,))
+        # Fetch milestone details including freelancer_id and payment amount
+        cursor.execute("SELECT id, payment, freelancer_id, job_id, status FROM milestones WHERE title = ?", (milestone_title,))
         milestone = cursor.fetchone()
-
 
         if not milestone:
             print("Error: Milestone not found.")
             conn.close()
             return
 
-        milestone_id, amount, freelancer_id, status = milestone
+        milestone_id, amount, freelancer_id, job_id, status = milestone
 
         if status == "approved":
             print("Milestone is already approved.")
         else:
-            # Fetch freelancer wallet using user_id instead of username
-            cursor.execute("SELECT balance FROM wallet WHERE user_id = ?", (freelancer_id,))
-            freelancer_wallet = cursor.fetchone()
+            # Ensure employer has enough balance
+            if self.wallet.balance < amount:
+                print("Error: Insufficient funds in employer wallet!")
+                conn.close()
+                return
 
+            # Deduct amount from employer's wallet
+            new_employer_balance = self.wallet.balance - amount
+            cursor.execute("UPDATE wallet SET balance = ? WHERE user_id = ?", (new_employer_balance, self.id))
 
-            if not freelancer_wallet:
-                print(f"Error: Wallet not found for freelancer with ID {freelancer_id}.")
-            else:
-                freelancer_balance = freelancer_wallet[0]
+            # Add amount to freelancer's temporary wallet
+            cursor.execute("INSERT INTO temporary_wallet (freelancer_id, balance) VALUES (?, ?) "
+                        "ON CONFLICT(freelancer_id) DO UPDATE SET balance = balance + ?",
+                        (freelancer_id, amount, amount))
 
-                # Transfer funds from employer to freelancer
-                if self.wallet.balance >= amount:
-                    new_employer_balance = self.wallet.balance - amount
-                    new_freelancer_balance = freelancer_balance + amount
+            # Mark milestone as approved
+            cursor.execute("UPDATE milestones SET status = 'approved' WHERE id = ?", (milestone_id,))
+            conn.commit()
 
+            print(f"Milestone '{milestone_title}' approved! Payment stored in temporary wallet.")
 
-                    # Update employer wallet
-                    cursor.execute("UPDATE wallet SET balance = ? WHERE user_id = ?", (new_employer_balance, self.user_id))
-                   
-                    # Update freelancer wallet
-                    cursor.execute("UPDATE wallet SET balance = ? WHERE user_id = ?", (new_freelancer_balance, freelancer_id))
+            # Check if all milestones for this job are approved
+            cursor.execute("SELECT COUNT(*) FROM milestones WHERE job_id = ? AND status != 'approved'", (job_id,))
+            remaining_milestones = cursor.fetchone()[0]
 
-
-                    # Update milestone status
-                    cursor.execute("UPDATE milestones SET status = 'approved' WHERE id = ?", (milestone_id,))
-                    conn.commit()
-
-
-                    print(f"Milestone '{milestone_title}' approved! Php {amount} transferred to freelancer ID {freelancer_id}.")
-                else:
-                    print("Error: Insufficient funds in employer wallet!")
+            if remaining_milestones == 0:
+                self.finalize_payment(freelancer_id, job_id, conn, cursor)
 
         conn.close()
-       
+        
+    def finalize_payment(freelancer_id, job_id, conn, cursor):
+        """Transfers all milestone payments from temporary wallet to freelancer's main wallet once all milestones are completed."""
+        
+        # Get total balance from the temporary wallet
+        cursor.execute("SELECT balance FROM temporary_wallet WHERE freelancer_id = ?", (freelancer_id,))
+        temp_balance = cursor.fetchone()
+
+        if temp_balance and temp_balance[0] > 0:
+            total_payment = temp_balance[0]
+
+            # Transfer to freelancer's wallet
+            cursor.execute("UPDATE wallet SET balance = balance + ? WHERE user_id = ?", (total_payment, freelancer_id))
+
+            # Clear the temporary wallet
+            cursor.execute("DELETE FROM temporary_wallet WHERE freelancer_id = ?", (freelancer_id,))
+
+            conn.commit()
+            print(f"✅ All milestones completed! Php {total_payment} transferred to freelancer ID {freelancer_id}.")
+
     def view_posted_jobs(self):
         """Fetch and print all jobs posted by the employer."""
         conn = sqlite3.connect("freelancer_marketplace.db")

@@ -16,15 +16,16 @@ class Freelancer(User):
         self.wallet = Wallet(id)
 
     def browse_jobs(self):
-        """Fetch and display all jobs, then allow freelancer to search or apply."""
-        while True:  # Keeps the user in the job browsing section until they choose to exit
+        """Fetch and display all available jobs, excluding those in progress."""
+        while True:
             conn = sqlite3.connect("freelancer_marketplace.db")
             cursor = conn.cursor()
 
-            # Fetch all jobs from the database
+            # Fetch only jobs that are still open
             cursor.execute("""
                 SELECT id, title, description, budget, skills_required, duration
                 FROM jobs
+                WHERE status = 'open'  -- Only fetch jobs that are not in progress
             """)
             jobs = cursor.fetchall()
             conn.close()
@@ -32,9 +33,9 @@ class Freelancer(User):
             if not jobs:
                 print("\nNo jobs available at the moment.")
                 time.sleep(1.5)
-                return  # Only return if no jobs are available
+                return  # Exit if no jobs are available
 
-            # Display all jobs
+            # Display available jobs
             Utility.clear_screen()
             Utility.display_header("Available Jobs")
             for index, job in enumerate(jobs):
@@ -55,7 +56,7 @@ class Freelancer(User):
                 self.apply_job()
             elif choice == "2":
                 print("Returning to freelancer dashboard...")
-                break  # Exits the loop and returns to the freelancer dashboard
+                break
             else:
                 print("\nInvalid choice. Please try again!")
                 time.sleep(1.5)

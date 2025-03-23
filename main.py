@@ -23,6 +23,19 @@ def init_db():
                         payment_method TEXT,
                         company_name TEXT
                     )''')
+
+    # Recreate the table with the correct schema
+    cursor.execute('''
+        CREATE TABLE temporary_wallet (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            employer_id INTEGER NOT NULL,
+            freelancer_id INTEGER NOT NULL,
+            balance REAL DEFAULT 0.0,
+            FOREIGN KEY (freelancer_id) REFERENCES users(id) ON DELETE CASCADE,
+            FOREIGN KEY (employer_id) REFERENCES users(id) ON DELETE CASCADE
+        )
+    ''')
+
     conn.commit()
     conn.close()
 
@@ -70,7 +83,6 @@ def employer_menu(user):
             duration = input("Enter Job Duration (e.g., 1 month): ")
             # Call the post_job method with all required arguments
             user.post_job(title, description, budget, skill_required, duration)
-            print("\nJob posted successfully!")
             time.sleep(1.5)
         elif choice == "2":
             user.view_posted_jobs()  # Correct way to call the method
@@ -169,84 +181,136 @@ def select_job(user):
 
 def progress_display(user, job_id):
     """Displays work in progress for both freelancers and employers."""
+    
+    def display_job_details():
+        """Fetch and display job details along with milestones and remaining budget."""
+        Utility.clear_screen()
+        Utility.display_header("Work in Progress")
 
-    Utility.clear_screen()
-    Utility.display_header("Work in Progress")
+        conn = sqlite3.connect("freelancer_marketplace.db")
+        cursor = conn.cursor()
 
-    conn = sqlite3.connect("freelancer_marketplace.db")
-    cursor = conn.cursor()
+        # Get job details, including budget
+        cursor.execute("SELECT title, description, budget, status FROM jobs WHERE id = ?", (job_id,))
+        job = cursor.fetchone()
 
-    # Get job details
-    cursor.execute("SELECT title, description, status FROM jobs WHERE id = ?", (job_id,))
-    job = cursor.fetchone()
+        if not job:
+            print("Error: Job not found.")
+            conn.close()
+            return False
 
-    if not job:
-        print("Error: Job not found.")
+        job_title, job_description, job_budget, job_status = job
+
+        if job_status != "in_progress":
+            print("This job is not currently in progress.")
+            conn.close()
+            return False
+
+        # Calculate total milestone payments
+        cursor.execute("SELECT COALESCE(SUM(payment), 0) FROM milestones WHERE job_id = ?", (job_id,))
+        total_allocated_budget = cursor.fetchone()[0]
+
+        remaining_budget = job_budget - total_allocated_budget
+
+        print(f"Job: {job_title}\nDescription: {job_description}")
+        print(f"Total Budget: Php {job_budget}")
+        print(f"Allocated Budget: Php {total_allocated_budget}")
+        print(f"Remaining Budget: Php {remaining_budget}\n")
+
+        # Fetch milestones based on user role
+        if user.role == "freelancer":
+            cursor.execute('''
+                SELECT id, title, payment, status
+                FROM milestones
+                WHERE job_id = ? AND freelancer_id = ?
+            ''', (job_id, user.id))
+        else:  # Employer
+            cursor.execute('''
+                SELECT id, title, payment, status
+                FROM milestones
+                WHERE job_id = ?
+            ''', (job_id,))
+
+        milestones = cursor.fetchall()
+
+        if not milestones:
+            print("No milestones found for this job.\n")
+        else:
+            print("\nMilestones:")
+            for idx, (milestone_id, title, payment, status) in enumerate(milestones, 1):
+                print(f"[{idx}] {title} (Php {payment}) [{status}]")
+
         conn.close()
-        return
+        return True
 
-    job_title, job_description, job_status = job
+    while True:
+        if not display_job_details():
+            break  # Stop loop if job is not in progress or doesn't exist
 
-    if job_status != "in_progress":
-        print("This job is not currently in progress.")
-        conn.close()
-        return
-
-    print(f"Job: {job_title}\nDescription: {job_description}\n")
-
-    # Fetch milestones based on the user role
-    if user.role == "freelancer":
-        cursor.execute('''
-            SELECT id, title, payment, status
-            FROM milestones
-            WHERE job_id = ? AND freelancer_id = ?
-        ''', (job_id, user.id))
-    else:  # Employer
-        cursor.execute('''
-            SELECT id, title, payment, status
-            FROM milestones
-            WHERE job_id = ?
-        ''', (job_id,))
-
-    milestones = cursor.fetchall()
-
-    if not milestones:
-        print("No milestones found for this job.\n")
-    else:
-        print("\nMilestones:")
-        for idx, (milestone_id, title, payment, status) in enumerate(milestones, 1):
-            print(f"[{idx}] {title} (Php {payment}) [{status}]")
-
-    conn.close()
-
-    # Options for freelancers
-    if user.role == "Freelancer":
-        while True:
+        if user.role == "Freelancer":
             choice = Utility.display_menu("Options", ["Submit Milestone", "Back"], use_header=False)
 
             if choice == "1":
                 milestone_title = input("Enter milestone title to submit: ").strip()
-                user.submit_milestone(milestone_title)  # Now submits by title
+                user.submit_milestone(milestone_title)  # Submit by title
             elif choice == "2":
-                break
+                break  # Exit loop
             else:
                 print("Invalid choice. Please select a valid option.")
 
-
-    # Options for employers
-    elif user.role == "Employer":
-        while True:
+        elif user.role == "Employer":
             choice = Utility.display_menu("Options", ["Add Milestone", "Approve Milestone", "Back"], use_header=False)
 
             if choice == "1":
-                user.add_milestone(job_id)
+                # Before adding, check if budget is enough
+                conn = sqlite3.connect("freelancer_marketplace.db")
+                cursor = conn.cursor()
+                cursor.execute("SELECT budget FROM jobs WHERE id = ?", (job_id,))
+                job_budget = cursor.fetchone()[0]
+
+                cursor.execute("SELECT COALESCE(SUM(payment), 0) FROM milestones WHERE job_id = ?", (job_id,))
+                total_allocated_budget = cursor.fetchone()[0]
+
+                remaining_budget = job_budget - total_allocated_budget
+                conn.close()
+
+                # **NEW CONDITION: Prevent adding a milestone if remaining budget is 0**
+                if remaining_budget <= 0:
+                    print("Error: No remaining budget available. You cannot add more milestones.")
+                    return  # Exit function early
+
+                # Get milestone details
+                milestone_title = input("Enter milestone title: ").strip()
+                while True:
+                    try:
+                        milestone_payment = float(input("Enter milestone payment: ").strip())
+                        if milestone_payment <= 0:
+                            print("Payment must be greater than 0.")
+                            continue
+                        if milestone_payment > remaining_budget:
+                            print(f"Error: Not enough budget. Remaining budget is Php {remaining_budget}")
+                            continue
+                        break
+                    except ValueError:
+                        print("Invalid input. Please enter a valid amount.")
+
+                # Add milestone
+                user.add_milestone(job_id, milestone_title, milestone_payment)
+
             elif choice == "2":
-                milestone_title = input("Enter milestone title to submit: ").strip()
+                milestone_title = input("Enter milestone title to approve: ").strip()
                 user.approve_milestone(milestone_title)
             elif choice == "3":
-                break
+                break  # Exit loop
             else:
                 print("Invalid choice. Please select a valid option.")
+
+
+        # Add a general exit option for both roles
+        if user.role not in ["Freelancer", "mployer"]:
+            print(f"DEBUG: User role is '{user.role}'")
+            print("Invalid role. Exiting...")
+            break
 
 def display_sign_up():
     Utility.clear_screen()
@@ -270,6 +334,13 @@ def display_login():
 
 def main():
     init_db()  # Initialize the database
+    conn = sqlite3.connect("freelancer_marketplace.db")
+    cursor = conn.cursor()
+    cursor.execute("PRAGMA table_info(temporary_wallet)")
+    columns = cursor.fetchall()
+    for column in columns:
+        print(column)
+    conn.close()
     while True:
         Utility.clear_screen()
         Utility.display_header("Welcome to ProDigi")

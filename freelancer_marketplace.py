@@ -87,6 +87,18 @@ CREATE TABLE IF NOT EXISTS payments (
 )
 ''')
 
+cursor.execute('''
+    CREATE TABLE IF NOT EXISTS temporary_wallet (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        employer_id INTEGER NOT NULL,
+        freelancer_id INTEGER NOT NULL,
+        balance REAL DEFAULT 0.0,
+        FOREIGN KEY (freelancer_id) REFERENCES users(id) ON DELETE CASCADE,
+        FOREIGN KEY (employer_id) REFERENCES users(id) ON DELETE CASCADE
+    )
+''')
+
+
 # Commit and close connection
 conn.commit()
 conn.close()

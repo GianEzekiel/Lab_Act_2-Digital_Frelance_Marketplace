@@ -35,23 +35,5 @@ class Application:
         else:
             raise ValueError("Invalid status update")
         
-    @staticmethod
-    def display_all_applications():
-        conn = sqlite3.connect("freelancer_marketplace.db")
-        cursor = conn.cursor()
-        cursor.execute("""
-            SELECT job_applications.id, jobs.title, users.username, job_applications.status
-            FROM job_applications
-            JOIN jobs ON job_applications.job_id = jobs.id
-            JOIN users ON job_applications.freelancer_id = users.id
-        """)
-        applications = cursor.fetchall()
-        conn.close()
-        
-        Utility.display_header("Job Applications")
-        for app in applications:
-            print(app)
-        Utility.divider()
-        
     
         
