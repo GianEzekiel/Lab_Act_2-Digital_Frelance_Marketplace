@@ -41,8 +41,7 @@ def freelancer_menu(user):
         elif choice == "3":
             user.edit_profile()
         elif choice == "4":
-            print("Logging out...")
-            time.sleep(2)
+            user.logout()
             break  # Exit the freelancer dashboard
         else:
             print("Invalid choice! Please try again.")
@@ -82,8 +81,7 @@ def employer_menu(user):
             user.print_posted_jobs()  # Correct way to call the method
             input("Press Enter to Return...")  # Pause before clearing screen
         elif choice == "5":
-            print("Logging out...")
-            time.sleep(2)
+            user.logout()
             break  # Exit the Employer dashboard and return to the main menu
         else:
             print("Invalid choice! Please try again.")

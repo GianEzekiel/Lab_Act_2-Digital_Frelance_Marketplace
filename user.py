@@ -99,6 +99,11 @@ class User:
         time.sleep(2)
         Utility.clear_screen()
         return None
+    
+    @classmethod
+    def logout(self):
+        print(f"\n{self.username} has logged out.")
+        time.sleep(2)
 
        
     @staticmethod
