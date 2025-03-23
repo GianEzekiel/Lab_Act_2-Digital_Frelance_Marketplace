@@ -453,13 +453,15 @@ def freelancer_menu(user):
     """Handles freelancer actions like browsing jobs and tracking applications."""
     while True:
         os.system("cls")  # Clear the terminal only once at the start of the loop
-        choice = display_menu(f"{user.role} Menu", ["Browse and Apply Jobs", "Track Applications", "Logout"])
+        choice = display_menu(f"{user.role} Menu", ["Browse and Apply Jobs", "Track Applications", "Edit Profile", "Logout"])
 
         if choice == "1":
             user.browse_jobs()  # Display jobs without clearing the terminal again
         elif choice == "2":
             user.track_applications()
         elif choice == "3":
+            user.edit_profile()
+        elif choice == "4":
             print("Logging out...")
             time.sleep(2)
             break  # Exit the freelancer dashboard
