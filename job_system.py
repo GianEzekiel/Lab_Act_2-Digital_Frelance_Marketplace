@@ -1,5 +1,5 @@
 import sqlite3
-from main import Freelancer # Ensure Freelancer class exists in main.py
+from freelancer import Freelancer # Ensure Freelancer class exists in main.py
 from utils import Utility
 
 class Job:
