@@ -198,53 +198,16 @@ class Freelancer(User):
                 if index < len(jobs) - 1:
                     divider()
 
-            choice = display_menu("Menu", ["Search Job", "Apply Job", "Exit to Dashboard"])
+            choice = display_menu("Menu", ["Apply Job", "Exit to Dashboard"])
 
             if choice == "1":
-                self.search_job()
-            elif choice == "2":
                 self.apply_job()
-            elif choice == "3":
+            elif choice == "2":
                 print("Returning to freelancer dashboard...")
                 break  # Exits the loop and returns to the freelancer dashboard
             else:
                 print("\nInvalid choice. Please try again!")
                 time.sleep(1.5)
-
-    # Function to search for a job by title
-    def search_job(self):
-        """Search for jobs based on the job title."""
-        job_title = input("Enter the job title to search: ").strip()
-
-        conn = sqlite3.connect("freelancer_marketplace.db")
-        cursor = conn.cursor()
-
-        cursor.execute("""
-            SELECT id, title, description, budget, skills_required, duration
-            FROM jobs
-            WHERE title LIKE ?
-        """, ('%' + job_title + '%',))
-       
-        jobs = cursor.fetchall()
-        conn.close()
-
-        os.system("cls")
-        display_header("Search Results")
-        
-        if not jobs:
-            print("No jobs found matching your search.")
-            divider()
-        else:
-            for job in jobs:
-                job_id, title, description, budget, skills_required, duration = job
-                print(f"[{job_id}] Title: {title}")
-                print(f"    Description: {description}")
-                print(f"    Budget: ${budget}")
-                print(f"    Skills Required: {skills_required}")
-                print(f"    Duration: {duration}")
-                divider()
-
-        input("Press Enter to Return...")  # Prevents instant return
 
     # Function to apply for a job
     def apply_job(self):
@@ -405,8 +368,6 @@ class Employer(User):
         if not applicants:
             print(f"No applicants for the job '{job_title}' yet.")
             return
-
-        
 
         # Manage applicants
         while True:
