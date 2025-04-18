@@ -37,7 +37,20 @@ class User:
             name = input("Enter your name: ")
             skills = input("Enter your skills (comma separated): ")
             experience = input("Enter your experience: ")
-            hourly_rate = float(input("Enter your hourly rate: "))
+
+            # Error handling for hourly rate
+            while True:
+                try:
+                    hourly_rate = float(input("Enter your hourly rate: "))
+                    if hourly_rate <= 0:
+                        print("\nHourly rate must be greater than zero!")
+                        time.sleep(1.5)
+                        continue
+                    break
+                except ValueError:
+                    print("\nInvalid input! Please enter a valid number for hourly rate.")
+                    time.sleep(1.5)
+                    
             payment_method = input("Enter your payment method: ")
 
             cursor.execute("""
