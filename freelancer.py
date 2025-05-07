@@ -31,8 +31,11 @@ class Freelancer(User):
             conn.close()
 
             if not jobs:
+                Utility.clear_screen()
+                Utility.display_header("Available Jobs")
                 print("\nNo jobs available at the moment.")
-                time.sleep(1.5)
+                Utility.divider()
+                input("Press Enter to Return...")
                 return  # Exit if no jobs are available
 
             # Display available jobs
@@ -234,3 +237,42 @@ class Freelancer(User):
        
         print("\nProfile updated successfully!")
         time.sleep(1.5)
+
+    def update_name(self, new_name, conn):
+        """Update the freelancer's name in the database and the instance."""
+        cursor = conn.cursor()
+        cursor.execute("UPDATE users SET name = ? WHERE username = ?", (new_name, self.username))
+        conn.commit()
+        self.name = new_name
+
+    def update_hourly_rate(self, new_rate, conn):
+        """Update the freelancer's hourly rate in the database and the instance."""
+        if not isinstance(new_rate, (int, float)) or new_rate <= 0:
+            raise ValueError("Hourly rate must be a positive number.")
+        cursor = conn.cursor()
+        cursor.execute("UPDATE users SET hourly_rate = ? WHERE username = ?", (new_rate, self.username))
+        conn.commit()
+        self.hourly_rate = new_rate
+
+    def update_skills(self, new_skills, conn):
+        """Update the freelancer's skills in the database and the instance."""
+        if not isinstance(new_skills, str):
+            raise ValueError("Skills must be a comma-separated string.")
+        cursor = conn.cursor()
+        cursor.execute("UPDATE users SET skills = ? WHERE username = ?", (new_skills, self.username))
+        conn.commit()
+        self.skills = new_skills.split(", ")
+
+    def update_experience(self, new_experience, conn):
+        """Update the freelancer's experience in the database and the instance."""
+        cursor = conn.cursor()
+        cursor.execute("UPDATE users SET experience = ? WHERE username = ?", (new_experience, self.username))
+        conn.commit()
+        self.experience = new_experience
+
+    def update_payment_method(self, new_payment_method, conn):
+        """Update the freelancer's payment method in the database and the instance."""
+        cursor = conn.cursor()
+        cursor.execute("UPDATE users SET payment_method = ? WHERE username = ?", (new_payment_method, self.username))
+        conn.commit()
+        self.payment_method = new_payment_method

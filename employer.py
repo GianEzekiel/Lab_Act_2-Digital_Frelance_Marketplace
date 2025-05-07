@@ -140,7 +140,6 @@ class Employer(User):
                 if decision == "a":
                     cursor.execute("UPDATE jobs SET status = 'in_progress' WHERE id = ?", (job_id,),
                     )
-
                 
                 conn.commit()
                 conn.close()
