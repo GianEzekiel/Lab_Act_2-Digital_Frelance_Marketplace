@@ -5,7 +5,7 @@ import sys
 
 
 # Add the parent directory to the Python path
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(_file_))))
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from payment_system import Wallet, Payment  # assuming your code is in wallet.py
 
 
@@ -109,5 +109,5 @@ class TestPaymentFunctionality(unittest.TestCase):
         self.assertEqual(payment.status, "Pending")
 
 
-if _name_ == "_main_":
+if __name__ == "__main__":
     unittest.main()
